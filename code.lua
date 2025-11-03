@@ -1,7 +1,6 @@
--- Booga Booga Reborn GUI with ESP, Fast Kill Aura, Auto-Loot, Teleport, Key System
+-- Booga Booga Reborn GUI Suite (Based on devboogabooga, bossgirmest17, Mond917)
 
-local expectedKey = "TEST1234" -- 🔑 Set your custom key here
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local expectedKey = "gooning123"
 
 local function promptKey()
     local gui = Instance.new("ScreenGui", game.CoreGui)
@@ -37,47 +36,52 @@ local function promptKey()
 end
 
 function loadGUI()
-    local Window = Library.CreateLib("Booga Suite", "Midnight")
-    local combat = Window:NewTab("Combat"):NewSection("Combat Tools")
-    local utility = Window:NewTab("Utility"):NewSection("ESP & Teleport")
+    local gui = Instance.new("ScreenGui", game.CoreGui)
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 300, 0, 400)
+    frame.Position = UDim2.new(0, 20, 0, 20)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    frame.Active = true
+    frame.Draggable = true
 
-    getgenv().killAuraEnabled = false
-    getgenv().aimbotEnabled = false
-    getgenv().espEnabled = false
-    getgenv().autoLootEnabled = false
-    getgenv().killAuraRange = 15
-    getgenv().predictionStrength = 1.0
-    getgenv().hitboxSize = 3.0
+    local function makeToggle(name, y, default, callback)
+        local btn = Instance.new("TextButton", frame)
+        btn.Size = UDim2.new(0, 280, 0, 30)
+        btn.Position = UDim2.new(0, 10, 0, y)
+        btn.Text = name .. ": " .. (default and "ON" or "OFF")
+        btn.BackgroundColor3 = default and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 50)
+        btn.TextColor3 = Color3.new(1, 1, 1)
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 18
+        btn.MouseButton1Click:Connect(function()
+            default = not default
+            btn.Text = name .. ": " .. (default and "ON" or "OFF")
+            btn.BackgroundColor3 = default and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 50)
+            callback(default)
+        end)
+    end
 
-    combat:NewToggle("Kill Aura", "Fast auto-hit", function(state)
-        getgenv().killAuraEnabled = state
+    makeToggle("Kill Aura", 10, false, function(state) getgenv().killAura = state end)
+    makeToggle("ESP Boxes", 50, false, function(state) getgenv().esp = state end)
+    makeToggle("Auto-Loot", 90, false, function(state) getgenv().autoLoot = state end)
+    makeToggle("Auto-Heal", 130, false, function(state) getgenv().autoHeal = state end)
+    makeToggle("Anti-AFK", 170, false, function(state)
+        if state then
+            for _, v in pairs(getconnections(game.Players.LocalPlayer.Idled)) do
+                v:Disable()
+            end
+        end
     end)
 
-    combat:NewSlider("Kill Aura Range", "Distance to hit", 30, 5, function(val)
-        getgenv().killAuraRange = val
-    end)
-
-    combat:NewToggle("Aimbot", "Locks aim above head", function(state)
-        getgenv().aimbotEnabled = state
-    end)
-
-    combat:NewSlider("Prediction Strength", "Arrow drop compensation", 5, 1, function(val)
-        getgenv().predictionStrength = val
-    end)
-
-    combat:NewSlider("Hitbox Size", "Resize enemy hitboxes", 10, 1, function(val)
-        getgenv().hitboxSize = val
-    end)
-
-    utility:NewToggle("ESP Boxes", "Draw boxes on players", function(state)
-        getgenv().espEnabled = state
-    end)
-
-    utility:NewToggle("Auto-Loot", "Grab nearby items", function(state)
-        getgenv().autoLootEnabled = state
-    end)
-
-    utility:NewButton("Teleport to Random Player", "TP to a random player", function()
+    local tpBtn = Instance.new("TextButton", frame)
+    tpBtn.Size = UDim2.new(0, 280, 0, 30)
+    tpBtn.Position = UDim2.new(0, 10, 0, 210)
+    tpBtn.Text = "Teleport to Random Player"
+    tpBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 170)
+    tpBtn.TextColor3 = Color3.new(1, 1, 1)
+    tpBtn.Font = Enum.Font.SourceSansBold
+    tpBtn.TextSize = 18
+    tpBtn.MouseButton1Click:Connect(function()
         local targets = {}
         for _, p in pairs(game.Players:GetPlayers()) do
             if p ~= game.Players.LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
@@ -100,11 +104,11 @@ RunService.RenderStepped:Connect(function()
     if not char then return end
 
     -- Kill Aura
-    if getgenv().killAuraEnabled then
+    if getgenv().killAura then
         for _, player in pairs(game.Players:GetPlayers()) do
             if player ~= lp and player.Character and player.Character:FindFirstChild("Humanoid") then
                 local part = player.Character:FindFirstChild("HumanoidRootPart")
-                if part and (part.Position - char.HumanoidRootPart.Position).Magnitude < getgenv().killAuraRange then
+                if part and (part.Position - char.HumanoidRootPart.Position).Magnitude < 15 then
                     player.Character.Humanoid.Health = 0
                 end
             end
@@ -112,7 +116,7 @@ RunService.RenderStepped:Connect(function()
     end
 
     -- ESP
-    if getgenv().espEnabled then
+    if getgenv().esp then
         for _, player in pairs(game.Players:GetPlayers()) do
             if player ~= lp and player.Character and player.Character:FindFirstChild("Head") then
                 local head = player.Character.Head
@@ -131,12 +135,20 @@ RunService.RenderStepped:Connect(function()
     end
 
     -- Auto-Loot
-    if getgenv().autoLootEnabled then
+    if getgenv().autoLoot then
         for _, item in pairs(workspace:GetDescendants()) do
             if item:IsA("Tool") and (item.Position - char.HumanoidRootPart.Position).Magnitude < 10 then
                 firetouchinterest(char.HumanoidRootPart, item, 0)
                 firetouchinterest(char.HumanoidRootPart, item, 1)
             end
+        end
+    end
+
+    -- Auto-Heal
+    if getgenv().autoHeal then
+        local hum = char:FindFirstChild("Humanoid")
+        if hum and hum.Health < 50 then
+            hum.Health = hum.Health + 5
         end
     end
 end)
