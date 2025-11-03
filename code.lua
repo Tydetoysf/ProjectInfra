@@ -29,7 +29,7 @@ local function safe_load_remote(url)
 end
 
 -- Try to load Fluent UI library; if it fails, provide a minimal stub so script doesn't crash.
-local Library, libErr = safe_load_remote("https://raw.githubusercontent.com/1dontgiveaf/Fluent-Renewed/main/Fluent.luau")
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/main/Fluent.luau"))()
 if not Library then
     warn("[IntraHub] Fluent UI failed to load ("..tostring(libErr).."), using minimal UI stub. Some visuals may be missing.")
     -- Minimal UI stub (very small subset used by script)
