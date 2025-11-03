@@ -471,9 +471,13 @@ Tabs.Survival = Window:AddTab({ Title = "Survival", Icon = "heart" })
 local autohealtoggle = Tabs.Survival:CreateToggle("autohealtoggle", { Title = "Auto Heal", Default = false })
 local autohealthslider = Tabs.Survival:CreateSlider("autohealthslider", { Title = "Heal Below (%)", Min = 1, Max = 100, Rounding = 0, Default = 50 })
 
--- Auto Eat
-local autoeattoggle = Tabs.Survival:CreateToggle("autoeattoggle", { Title = "Auto Eat Periodically", Default = false })
-local autoeatdelay = Tabs.Survival:CreateSlider("autoeatdelay", { Title = "Eat Every (s)", Min = 1, Max = 60, Rounding = 0, Default = 10 })
+local autoeattoggle = Tabs.Survival:CreateToggle("autoeattoggle", { Title = "Auto Eat", Default = false })
+local fooddropdown = Tabs.Survival:CreateDropdown("fooddropdown", {
+    Title = "Food Item",
+    Values = { "Cooked Meat", "Bloodfruit", "Berry", "Bluefruit", "Jelly", "Lemon", "Strawberry" },
+    Default = "Cooked Meat"
+})
+
 
 -- Fruit Selector
 local fruitdropdown = Tabs.Survival:CreateDropdown("fruitdropdown", {
@@ -612,37 +616,17 @@ task.spawn(function()
 end)
 
 task.spawn(function()
-    local lastEat = 0
     while true do
-        local char = LocalPlayer.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then
-            local hp = hum.Health
-            local maxhp = hum.MaxHealth
-            local fruit = fruitdropdown.Value
-
-            -- Auto Heal
-            if autohealtoggle.Value and (hp / maxhp * 100) <= autohealthslider.Value then
-                if packets and packets.UseBagItem and type(packets.UseBagItem.send) == "function" then
-                    pcall(function()
-                        packets.UseBagItem.send(fruit)
-                    end)
-                end
-            end
-
-            -- Auto Eat
-            if autoeattoggle.Value and tick() - lastEat >= autoeatdelay.Value then
-                if packets and packets.UseBagItem and type(packets.UseBagItem.send) == "function" then
-                    pcall(function()
-                        packets.UseBagItem.send(fruit)
-                    end)
-                    lastEat = tick()
-                end
-            end
+        if autoeattoggle.Value then
+            local item = fooddropdown.Value
+            game:GetService("ReplicatedStorage").Events.UseBagItem:FireServer(item)
+            task.wait(180)
+        else
+            task.wait(1)
         end
-        task.wait(0.25)
     end
 end)
+
 
 
 
