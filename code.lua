@@ -28,78 +28,99 @@ local function safe_load_remote(url)
     return result, nil
 end
 
--- Try to load Fluent UI library; if it fails, provide a minimal stub so script doesn't crash.
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/main/Fluent.luau"))()
+-- Load Fluent UI library with fallback stub
+local function safe_load(url)
+    local success, result = pcall(function()
+        local code = game:HttpGet(url)
+        return loadstring(code)()
+    end)
+    return success and result or nil
+end
+
+local Library = safe_load("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/main/Fluent.luau")
+
 if not Library then
-    warn("[IntraHub] Fluent UI failed to load ("..tostring(libErr).."), using minimal UI stub. Some visuals may be missing.")
-    -- Minimal UI stub (very small subset used by script)
+    warn("[IntraHub] Fluent UI failed to load, using fallback stub.")
+
     Library = {}
     Library.Options = {}
-    function Library:CreateWindow(opts)
-        local window = {}
-        window.Tabs = {}
-        function window:AddTab(tabinfo)
-            local t = { Title = tabinfo.Title, Elements = {}, Icon = tabinfo.Icon }
-            function t:CreateToggle(id, params)
+
+    function Library:CreateWindow(cfg)
+        print("Fallback window created:", cfg.Title)
+        local window = { Tabs = {} }
+
+        function window:AddTab(tabCfg)
+            print("Fallback tab added:", tabCfg.Title)
+            local tab = { Title = tabCfg.Title, Elements = {}, Icon = tabCfg.Icon }
+
+            function tab:CreateToggle(id, params)
                 local obj = { Id = id, Title = params.Title or id, Value = params.Default == true }
                 function obj:OnChanged(cb) obj._cb = cb end
                 function obj:SetValue(v) obj.Value = v; if obj._cb then pcall(obj._cb, v) end end
                 Library.Options[id] = obj
-                self.Elements[id] = obj
+                tab.Elements[id] = obj
                 return obj
             end
-            function t:CreateSlider(id, params)
+
+            function tab:CreateSlider(id, params)
                 local obj = { Id = id, Title = params.Title or id, Value = params.Default or (params.Min or 0) }
                 function obj:OnChanged(cb) obj._cb = cb end
                 function obj:SetValue(v) obj.Value = v; if obj._cb then pcall(obj._cb, v) end end
                 Library.Options[id] = obj
-                self.Elements[id] = obj
+                tab.Elements[id] = obj
                 return obj
             end
-            function t:CreateInput(params) local obj = { Value = params.Default or "" }; return obj end
-            function t:CreateButton(params) end
-            function t:CreateDropdown(id, params) local dd = { Id = id, Values = params.Values or {}, Value = params.Default or "" }
+
+            function tab:CreateInput(params)
+                return { Value = params.Default or "" }
+            end
+
+            function tab:CreateDropdown(id, params)
+                local dd = { Id = id, Values = params.Values or {}, Value = params.Default or "" }
                 function dd:SetValues(vals) dd.Values = vals end
                 function dd:OnChanged(cb) dd._cb = cb end
                 Library.Options[id] = dd
-                self.Elements[id] = dd
+                tab.Elements[id] = dd
                 return dd
             end
-            function t:CreateParagraph() end
-            window.Tabs[tabinfo.Title] = t
-            return t
+
+            function tab:CreateButton(params) end
+            function tab:CreateParagraph() end
+
+            window.Tabs[tabCfg.Title] = tab
+            return tab
         end
+
         function window:SelectTab() end
-        function window:Notify(opts) print("[Notify]", opts.Title, opts.Content) end
+        function window:Notify(opts)
+            print("[Notify]", opts.Title, opts.Content)
+        end
+
         return window
     end
-    -- Minimal Notify fallback
-    function Library:Notify(opts) print("[Notify]", opts.Title, opts.Content) end
-end
 
--- Attempt to load addons (pcall safe)
-local SaveManager, InterfaceManager
-do
-    local ok1, sm = pcall(function() return safe_load_remote("https://raw.githubusercontent.com/1dontgiveaf/Fluent-Renewed/refs/heads/main/Addons/SaveManager.luau") end)
-    if ok1 and sm then SaveManager = sm else
-        SaveManager = {}
-        function SaveManager:SetLibrary() end
-        function SaveManager:IgnoreThemeSettings() end
-        function SaveManager:SetIgnoreIndexes() end
-        function SaveManager:SetFolder() end
-        function SaveManager:BuildConfigSection() end
-        function SaveManager:LoadAutoloadConfig() end
-    end
-    local ok2, im = pcall(function() return safe_load_remote("https://raw.githubusercontent.com/1dontgiveaf/Fluent-Renewed/refs/heads/main/Addons/InterfaceManager.luau") end)
-    if ok2 and im then InterfaceManager = im else
-        InterfaceManager = {}
-        function InterfaceManager:SetLibrary() end
-        function InterfaceManager:SetFolder() end
-        function InterfaceManager:BuildInterfaceSection() end
+    function Library:Notify(opts)
+        print("[Notify]", opts.Title, opts.Content)
     end
 end
 
--- Create main GUI window (safe)
+-- Load SaveManager and InterfaceManager safely
+local SaveManager = safe_load("https://raw.githubusercontent.com/1dontgiveaf/Fluent-Renewed/main/Addons/SaveManager.luau") or {
+    SetLibrary = function() end,
+    IgnoreThemeSettings = function() end,
+    SetIgnoreIndexes = function() end,
+    SetFolder = function() end,
+    BuildConfigSection = function() end,
+    LoadAutoloadConfig = function() end,
+}
+
+local InterfaceManager = safe_load("https://raw.githubusercontent.com/1dontgiveaf/Fluent-Renewed/main/Addons/InterfaceManager.luau") or {
+    SetLibrary = function() end,
+    SetFolder = function() end,
+    BuildInterfaceSection = function() end,
+}
+
+-- Create main GUI window
 local Window = Library:CreateWindow{
     Title = "Project Instra Hub -- Booga Booga Reborn",
     SubTitle = "by xylo",
@@ -111,6 +132,7 @@ local Window = Library:CreateWindow{
     Theme = "Dark",
     MinimizeKey = Enum.KeyCode.LeftControl
 }
+
 
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "menu" }),
