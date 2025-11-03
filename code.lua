@@ -28,54 +28,9 @@ local function safe_load_remote(url)
     return result, nil
 end
 
--- Try to load Fluent UI library; if it fails, provide a minimal stub so script doesn't crash.
-local Library, libErr = safe_load_remote("https://github.com/1dontgiveaf/Fluent-Renewed/releases/download/v1.0/Fluent.luau")
-if not Library then
-    warn("[IntraHub] Fluent UI failed to load ("..tostring(libErr).."), using minimal UI stub. Some visuals may be missing.")
-    -- Minimal UI stub (very small subset used by script)
-    Library = {}
-    Library.Options = {}
-    function Library:CreateWindow(opts)
-        local window = {}
-        window.Tabs = {}
-        function window:AddTab(tabinfo)
-            local t = { Title = tabinfo.Title, Elements = {}, Icon = tabinfo.Icon }
-            function t:CreateToggle(id, params)
-                local obj = { Id = id, Title = params.Title or id, Value = params.Default == true }
-                function obj:OnChanged(cb) obj._cb = cb end
-                function obj:SetValue(v) obj.Value = v; if obj._cb then pcall(obj._cb, v) end end
-                Library.Options[id] = obj
-                self.Elements[id] = obj
-                return obj
-            end
-            function t:CreateSlider(id, params)
-                local obj = { Id = id, Title = params.Title or id, Value = params.Default or (params.Min or 0) }
-                function obj:OnChanged(cb) obj._cb = cb end
-                function obj:SetValue(v) obj.Value = v; if obj._cb then pcall(obj._cb, v) end end
-                Library.Options[id] = obj
-                self.Elements[id] = obj
-                return obj
-            end
-            function t:CreateInput(params) local obj = { Value = params.Default or "" }; return obj end
-            function t:CreateButton(params) end
-            function t:CreateDropdown(id, params) local dd = { Id = id, Values = params.Values or {}, Value = params.Default or "" }
-                function dd:SetValues(vals) dd.Values = vals end
-                function dd:OnChanged(cb) dd._cb = cb end
-                Library.Options[id] = dd
-                self.Elements[id] = dd
-                return dd
-            end
-            function t:CreateParagraph() end
-            window.Tabs[tabinfo.Title] = t
-            return t
-        end
-        function window:SelectTab() end
-        function window:Notify(opts) print("[Notify]", opts.Title, opts.Content) end
-        return window
-    end
-    -- Minimal Notify fallback
-    function Library:Notify(opts) print("[Notify]", opts.Title, opts.Content) end
-end
+local Luxtl = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Luxware-UI-Library/main/Source.lua"))()
+local Luxt = Luxtl.CreateWindow("Project Infra Hub", 6105620301)
+
 
 -- Attempt to load addons (pcall safe)
 local SaveManager, InterfaceManager
@@ -113,14 +68,12 @@ local Window = Library:CreateWindow{
 }
 
 local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "menu" }),
-    Combat = Window:AddTab({ Title = "Combat", Icon = "axe" }),
-    Map = Window:AddTab({ Title = "Map", Icon = "trees" }),
-    Pickup = Window:AddTab({ Title = "Pickup", Icon = "backpack" }),
-    Farming = Window:AddTab({ Title = "Farming", Icon = "sprout" }),
-    Extra = Window:AddTab({ Title = "Extra", Icon = "plus" }),
-    Tweens = Window:AddTab({ Title = "Tweens", Icon = "sparkles" }),
-    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+local mainTab = Luxt:Tab("Main")
+local combatTab = Luxt:Tab("Combat")
+local survivalTab = Luxt:Tab("Survival")
+local extraTab = Luxt:Tab("Extra")
+local tweensTab = Luxt:Tab("Tweens")
+
 }
 
 
@@ -270,76 +223,234 @@ local itemslist = {
 local Options = Library.Options or {}
 
 --{MAIN TAB}
-local wstoggle = Tabs.Main:CreateToggle("wstoggle", { Title = "Walkspeed", Default = false })
-local wsslider = Tabs.Main:CreateSlider("wsslider", { Title = "Value", Min = 1, Max = 35, Rounding = 1, Default = 16 })
-local jptoggle = Tabs.Main:CreateToggle("jptoggle", { Title = "JumpPower", Default = false })
-local jpslider = Tabs.Main:CreateSlider("jpslider", { Title = "Value", Min = 1, Max = 65, Rounding = 1, Default = 50 })
-local hheighttoggle = Tabs.Main:CreateToggle("hheighttoggle", { Title = "HipHeight", Default = false })
-local hheightslider = Tabs.Main:CreateSlider("hheightslider", { Title = "Value", Min = 0.1, Max = 6.5, Rounding = 1, Default = 2 })
-local msatoggle = Tabs.Main:CreateToggle("msatoggle", { Title = "No Mountain Slip", Default = false })
-Tabs.Main:CreateButton({Title = "Copy Job ID", Callback = function() safe_setclipboard(game.JobId) end})
-Tabs.Main:CreateButton({Title = "Copy HWID", Callback = function() safe_setclipboard(rbxservice:GetClientId()) end})
-Tabs.Main:CreateButton({Title = "Copy SID", Callback = function() safe_setclipboard(rbxservice:GetSessionId()) end})
+-- WalkSpeed Toggle & Slider
+mainTab:Toggle("Walkspeed", function(state)
+    _G.WalkspeedEnabled = state
+end)
+
+mainTab:Slider("WalkSpeed Value", 1, 35, function(value)
+    _G.WalkspeedValue = value
+end)
+
+-- JumpPower Toggle & Slider
+mainTab:Toggle("JumpPower", function(state)
+    _G.JumpPowerEnabled = state
+end)
+
+mainTab:Slider("JumpPower Value", 1, 65, function(value)
+    _G.JumpPowerValue = value
+end)
+
+-- HipHeight Toggle & Slider
+mainTab:Toggle("HipHeight", function(state)
+    _G.HipHeightEnabled = state
+end)
+
+mainTab:Slider("HipHeight Value", 0.1, 6.5, function(value)
+    _G.HipHeightValue = value
+end)
+
+-- No Mountain Slip Toggle
+mainTab:Toggle("No Mountain Slip", function(state)
+    _G.NoSlipEnabled = state
+end)
+
+-- Copy Buttons
+mainTab:Button("Copy Job ID", function()
+    safe_setclipboard(game.JobId)
+end)
+
+mainTab:Button("Copy HWID", function()
+    safe_setclipboard(rbxservice:GetClientId())
+end)
+
+mainTab:Button("Copy SID", function()
+    safe_setclipboard(rbxservice:GetSessionId())
+end)
 
 --{COMBAT TAB}
-local killauratoggle = Tabs.Combat:CreateToggle("killauratoggle", { Title = "Kill Aura", Default = false })
-local killaurarangeslider = Tabs.Combat:CreateSlider("killaurarange", { Title = "Range", Min = 1, Max = 9, Rounding = 1, Default = 5 })
-local katargetcountdropdown = Tabs.Combat:CreateDropdown("katargetcountdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6" }, Default = "1" })
-local kaswingcooldownslider = Tabs.Combat:CreateSlider("kaswingcooldownslider", { Title = "Attack Cooldown (s)", Min = 0.01, Max = 1.01, Rounding = 2, Default = 0.1 })
-local tool = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool")
-if tool and tool:FindFirstChild("Handle") then
-    local anim = Instance.new("Animation")
-    anim.AnimationId = "rbxassetid://522635514" -- default rock swing
-    local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if hum then
-        local track = hum:LoadAnimation(anim)
-        track:Play()
-    end
-end
+-- Kill Aura Toggle
+combatTab:Toggle("Kill Aura", function(state)
+    _G.KillAuraEnabled = state
+end)
+
+-- Target Count Dropdown
+combatTab:DropDown("Target Count", {"1", "2", "3", "4", "5"}, function(selected)
+    _G.TargetCount = tonumber(selected)
+end)
+
+-- Swing Cooldown Slider
+combatTab:Slider("Swing Cooldown", 0.1, 2.0, function(value)
+    _G.SwingCooldown = value
+end)
+
+-- Rock Animation Sync Toggle
+combatTab:Toggle("Rock Animation Sync", function(state)
+    _G.RockSyncEnabled = state
+end)
+
+-- Auto Attack Toggle
+combatTab:Toggle("Auto Attack", function(state)
+    _G.AutoAttack = state
+end)
+
+-- Attack Range Slider
+combatTab:Slider("Attack Range", 5, 50, function(value)
+    _G.AttackRange = value
+end)
+
+
 
 --{MAP TAB}
-local resourceauratoggle = Tabs.Map:CreateToggle("resourceauratoggle", { Title = "Resource Aura", Default = false })
-local resourceaurarange = Tabs.Map:CreateSlider("resourceaurarange", { Title = "Range", Min = 1, Max = 20, Rounding = 1, Default = 20 })
-local resourcetargetdropdown = Tabs.Map:CreateDropdown("resourcetargetdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6" }, Default = "1" })
-local resourcecooldownslider = Tabs.Map:CreateSlider("resourcecooldownslider", { Title = "Swing Cooldown (s)", Min = 0.01, Max = 1.01, Rounding = 2, Default = 0.1 })
-local critterauratoggle = Tabs.Map:CreateToggle("critterauratoggle", { Title = "Critter Aura", Default = false })
-local critterrangeslider = Tabs.Map:CreateSlider("critterrangeslider", { Title = "Range", Min = 1, Max = 20, Rounding = 1, Default = 20 })
-local crittertargetdropdown = Tabs.Map:CreateDropdown("crittertargetdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6" }, Default = "1" })
-local crittercooldownslider = Tabs.Map:CreateSlider("crittercooldownslider", { Title = "Swing Cooldown (s)", Min = 0.01, Max = 1.01, Rounding = 2, Default = 0.1 })
+-- Initialize Map tab
+local mapTab = Luxt:Tab("Map")
+
+-- Resource Aura
+mapTab:Toggle("Resource Aura", function(state)
+    _G.ResourceAuraEnabled = state
+end)
+
+mapTab:Slider("Resource Aura Range", 1, 20, function(value)
+    _G.ResourceAuraRange = value
+end)
+
+mapTab:DropDown("Resource Max Targets", {"1", "2", "3", "4", "5", "6"}, function(selected)
+    _G.ResourceMaxTargets = tonumber(selected)
+end)
+
+mapTab:Slider("Resource Swing Cooldown (s)", 0.01, 1.01, function(value)
+    _G.ResourceSwingCooldown = value
+end)
+
+-- Critter Aura
+mapTab:Toggle("Critter Aura", function(state)
+    _G.CritterAuraEnabled = state
+end)
+
+mapTab:Slider("Critter Aura Range", 1, 20, function(value)
+    _G.CritterAuraRange = value
+end)
+
+mapTab:DropDown("Critter Max Targets", {"1", "2", "3", "4", "5", "6"}, function(selected)
+    _G.CritterMaxTargets = tonumber(selected)
+end)
+
+mapTab:Slider("Critter Swing Cooldown (s)", 0.01, 1.01, function(value)
+    _G.CritterSwingCooldown = value
+end)
+
 
 --{PICKUP TAB}
-local autopickuptoggle = Tabs.Pickup:CreateToggle("autopickuptoggle", { Title = "Auto Pickup", Default = false })
-local chestpickuptoggle = Tabs.Pickup:CreateToggle("chestpickuptoggle", { Title = "Auto Pickup From Chests", Default = false })
-local pickuprangeslider = Tabs.Pickup:CreateSlider("pickuprange", { Title = "Pickup Range", Min = 1, Max = 35, Rounding = 1, Default = 20 })
-local itemdropdown = Tabs.Pickup:CreateDropdown("itemdropdown", {Title = "Items", Values = {"Berry", "Bloodfruit", "Bluefruit", "Lemon", "Strawberry", "Gold", "Raw Gold", "Crystal Chunk", "Coin"}, Default = "Berry"})
-local droptoggle = Tabs.Pickup:AddToggle("droptoggle", { Title = "Auto Drop", Default = false })
-local dropdropdown = Tabs.Pickup:AddDropdown("dropdropdown", {Title = "Select Item to Drop", Values = { "Bloodfruit", "Jelly", "Bluefruit", "Log", "Leaves", "Wood" }, Default = "Bloodfruit"})
-local droptogglemanual = Tabs.Pickup:AddToggle("droptogglemanual", { Title = "Auto Drop Custom", Default = false })
-local droptextbox = Tabs.Pickup:AddInput("droptextbox", { Title = "Custom Item", Default = "Bloodfruit", Numeric = false, Finished = false })
+-- Initialize Pickup tab
+local pickupTab = Luxt:Tab("Pickup")
+
+-- Auto Pickup
+pickupTab:Toggle("Auto Pickup", function(state)
+    _G.AutoPickup = state
+end)
+
+pickupTab:Toggle("Auto Pickup From Chests", function(state)
+    _G.AutoPickupChests = state
+end)
+
+pickupTab:Slider("Pickup Range", 1, 35, function(value)
+    _G.PickupRange = value
+end)
+
+pickupTab:DropDown("Items", {"Berry", "Bloodfruit", "Bluefruit", "Lemon", "Strawberry", "Gold", "Raw Gold", "Crystal Chunk", "Coin"}, function(selected)
+    _G.SelectedPickupItem = selected
+end)
+
+-- Auto Drop
+pickupTab:Toggle("Auto Drop", function(state)
+    _G.AutoDrop = state
+end)
+
+pickupTab:DropDown("Select Item to Drop", {"Bloodfruit", "Jelly", "Bluefruit", "Log", "Leaves", "Wood"}, function(selected)
+    _G.DropItem = selected
+end)
+
+pickupTab:Toggle("Auto Drop Custom", function(state)
+    _G.AutoDropCustom = state
+end)
+
+pickupTab:TextBox("Custom Item", "Bloodfruit", function(text)
+    _G.CustomDropItem = text
+end)
+
 
 --{FARMING TAB}
-local fruitdropdown = Tabs.Farming:CreateDropdown("fruitdropdown", {Title = "Select Fruit",Values = {"Bloodfruit", "Bluefruit", "Lemon", "Coconut", "Jelly", "Banana", "Orange", "Oddberry", "Berry"}, Default = "Bloodfruit"})
-local planttoggle = Tabs.Farming:CreateToggle("planttoggle", { Title = "Auto Plant", Default = false })
-local plantrangeslider = Tabs.Farming:CreateSlider("plantrange", { Title = "Plant Range", Min = 1, Max = 30, Rounding = 1, Default = 30 })
-local plantdelayslider = Tabs.Farming:CreateSlider("plantdelay", { Title = "Plant Delay (s)", Min = 0.01, Max = 1, Rounding = 2, Default = 0.1 })
-local harvesttoggle = Tabs.Farming:CreateToggle("harvesttoggle", { Title = "Auto Harvest", Default = false })
-local harvestrangeslider = Tabs.Farming:CreateSlider("harvestrange", { Title = "Harvest Range", Min = 1, Max = 30, Rounding = 1, Default = 30 })
-Tabs.Farming:CreateParagraph("Aligned Paragraph", {Title = "Tween Stuff", Content = "Project Instra runs :(", TitleAlignment = "Middle", ContentAlignment = Enum.TextXAlignment.Center})
-local tweenplantboxtoggle = Tabs.Farming:AddToggle("tweentoplantbox", { Title = "Tween to Plant Box", Default = false })
-local tweenbushtoggle = Tabs.Farming:AddToggle("tweentobush", { Title = "Tween to Bush + Plant Box", Default = false })
-local tweenrangeslider = Tabs.Farming:AddSlider("tweenrange", { Title = "Range", Min = 1, Max = 250, Rounding = 1, Default = 250 })
-Tabs.Farming:CreateParagraph("Aligned Paragraph", {Title = "Plantbox Stuff", Content = "project instra runs :(", TitleAlignment = "Middle", ContentAlignment = Enum.TextXAlignment.Center})
-Tabs.Farming:CreateButton({Title = "Place 16x16 Plantboxes (256)", Callback = function() placestructure(16) end })
-Tabs.Farming:CreateButton({Title = "Place 15x15 Plantboxes (225)", Callback = function() placestructure(15) end })
-Tabs.Farming:CreateButton({Title = "Place 10x10 Plantboxes (100)", Callback = function() placestructure(10) end })
-Tabs.Farming:CreateButton({Title = "Place 5x5 Plantboxes (25)", Callback = function() placestructure(5) end })
-Tabs.Farming:CreateButton({
-    Title = "🌱 Plant All Nearby",
-    Description = "Instantly plants all empty boxes in range",
-    Callback = function()
-        local range = tonumber(plantrangeslider.Value) or 30
-        local selectedfruit = fruitdropdown.Value
-        local itemID = fruittoitemid[selectedfruit] or 94
+-- Initialize Farming tab
+local farmingTab = Luxt:Tab("Farming")
+
+-- Fruit Selector
+farmingTab:DropDown("Select Fruit", {"Bloodfruit", "Bluefruit", "Lemon", "Coconut", "Jelly", "Banana", "Orange", "Oddberry", "Berry"}, function(selected)
+    _G.SelectedFruit = selected
+end)
+
+-- Auto Plant
+farmingTab:Toggle("Auto Plant", function(state)
+    _G.AutoPlant = state
+end)
+
+farmingTab:Slider("Plant Range", 1, 30, function(value)
+    _G.PlantRange = value
+end)
+
+farmingTab:Slider("Plant Delay (s)", 0.01, 1, function(value)
+    _G.PlantDelay = value
+end)
+
+-- Auto Harvest
+farmingTab:Toggle("Auto Harvest", function(state)
+    _G.AutoHarvest = state
+end)
+
+farmingTab:Slider("Harvest Range", 1, 30, function(value)
+    _G.HarvestRange = value
+end)
+
+-- Tween Stuff Section
+farmingTab:Label("Tween Stuff — Project Instra runs :(")
+
+farmingTab:Toggle("Tween to Plant Box", function(state)
+    _G.TweenToPlantBox = state
+end)
+
+farmingTab:Toggle("Tween to Bush + Plant Box", function(state)
+    _G.TweenToBush = state
+end)
+
+farmingTab:Slider("Tween Range", 1, 250, function(value)
+    _G.TweenRange = value
+end)
+
+-- Plantbox Stuff Section
+farmingTab:Label("Plantbox Stuff — project instra runs :(")
+
+farmingTab:Button("Place 16x16 Plantboxes (256)", function()
+    placestructure(16)
+end)
+
+farmingTab:Button("Place 15x15 Plantboxes (225)", function()
+    placestructure(15)
+end)
+
+farmingTab:Button("Place 10x10 Plantboxes (100)", function()
+    placestructure(10)
+end)
+
+farmingTab:Button("Place 5x5 Plantboxes (25)", function()
+    placestructure(5)
+end)
+
+farmingTab:Button("🌱 Plant All Nearby", function()
+    local range = _G.PlantRange or 30
+    local selectedfruit = _G.SelectedFruit or "Bloodfruit"
+    local itemID = fruittoitemid[selectedfruit] or 94
+    -- your planting logic here
+end)
+
 
         local plantboxes = getpbs(range)
         for _, box in ipairs(plantboxes) do
@@ -354,26 +465,63 @@ Tabs.Farming:CreateButton({
 
 
 --{EXTRA TAB}
-Tabs.Extra:CreateButton({Title = "Infinite Yield", Description = "inf yield chat", Callback = function() pcall(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Tydetoysf/booga/main/code.lua"))() end) end})
-Tabs.Extra:CreateParagraph("Aligned Paragraph", {Title = "orbit breaks sometimes", Content = "i dont give a shit", TitleAlignment = "Middle", ContentAlignment = Enum.TextXAlignment.Center})
-local orbittoggle = Tabs.Extra:CreateToggle("orbittoggle", { Title = "Item Orbit", Default = false })
-local orbitrangeslider = Tabs.Extra:CreateSlider("orbitrange", { Title = "Grab Range", Min = 1, Max = 50, Rounding = 1, Default = 20 })
-local orbitradiusslider = Tabs.Extra:CreateSlider("orbitradius", { Title = "Orbit Radius", Min = 0, Max = 30, Rounding = 1, Default = 10 })
-local orbitspeedslider = Tabs.Extra:CreateSlider("orbitspeed", { Title = "Orbit Speed", Min = 0, Max = 10, Rounding = 1, Default = 5 })
-local itemheightslider = Tabs.Extra:CreateSlider("itemheight", { Title = "Item Height", Min = -3, Max = 10, Rounding = 1, Default = 3 })
+-- Initialize Extra tab
+local extraTab = Luxt:Tab("Extra")
 
---{TWEEN TAB}
-Tabs.Tweens:CreateParagraph("Tween Tools", {
-    Title = "Tween Controls",
-    Content = "Create, manage, and replay custom tweens.",
-    TitleAlignment = "Middle",
-    ContentAlignment = Enum.TextXAlignment.Center
-})
+-- Infinite Yield Button
+extraTab:Button("Infinite Yield", function()
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Tydetoysf/booga/main/code.lua"))()
+    end)
+end)
 
--- Toggles
-local tweentoggle = Tabs.Tweens:CreateToggle("tweentoggle", { Title = "Enable Tweening", Default = false })
-local nocliptoggle = Tabs.Tweens:CreateToggle("nocliptoggle", { Title = "Tween NoClip", Default = false })
-local recordToggle = Tabs.Tweens:CreateToggle("recordTweenToggle", { Title = "Record Movement Path", Default = false })
+-- Orbit Info Label
+extraTab:Label("orbit breaks sometimes — i don't give a shit")
+
+-- Item Orbit Toggle
+extraTab:Toggle("Item Orbit", function(state)
+    _G.ItemOrbitEnabled = state
+end)
+
+-- Orbit Sliders
+extraTab:Slider("Grab Range", 1, 50, function(value)
+    _G.OrbitGrabRange = value
+end)
+
+extraTab:Slider("Orbit Radius", 0, 30, function(value)
+    _G.OrbitRadius = value
+end)
+
+extraTab:Slider("Orbit Speed", 0, 10, function(value)
+    _G.OrbitSpeed = value
+end)
+
+extraTab:Slider("Item Height", -3, 10, function(value)
+    _G.ItemHeight = value
+end)
+
+
+-- Initialize Tweens tab
+local tweensTab = Luxt:Tab("Tweens")
+
+-- Tween Controls Label
+tweensTab:Label("Tween Controls — Create, manage, and replay custom tweens.")
+
+-- Enable Tweening Toggle
+tweensTab:Toggle("Enable Tweening", function(state)
+    _G.TweeningEnabled = state
+end)
+
+-- Tween NoClip Toggle
+tweensTab:Toggle("Tween NoClip", function(state)
+    _G.TweenNoClip = state
+end)
+
+-- Record Movement Path Toggle
+tweensTab:Toggle("Record Movement Path", function(state)
+    _G.RecordTweenPath = state
+end)
+
 
 -- Sliders
 local tweenspeedslider = Tabs.Tweens:CreateSlider("tweenspeedslider", {
