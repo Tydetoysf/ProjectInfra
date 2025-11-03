@@ -586,7 +586,7 @@ end)
 task.spawn(function()
     while true do
         if not tweenplantboxtoggle.Value then
-            task.wait(0.1)
+            task.wait(00.1)
             continue
         end
         local range = tonumber(Options.tweenrange.Value) or 250
