@@ -33,20 +33,6 @@ local Luxt = Luxtl.CreateWindow("Project Infra Hub", 6105620301)
 
 
 
--- Create main GUI window (safe)
-local Window = Library:CreateWindow{
-    Title = "Project Instra Hub -- Booga Booga Reborn",
-    SubTitle = "by xylo",
-    TabWidth = 160,
-    Size = UDim2.fromOffset(830, 525),
-    Resize = true,
-    MinSize = Vector2.new(470, 380),
-    Acrylic = true,
-    Theme = "Dark",
-    MinimizeKey = Enum.KeyCode.LeftControl
-}
-
-
 local mainTab = Luxt:Tab("Main")
 local combatTab = Luxt:Tab("Combat")
 local survivalTab = Luxt:Tab("Survival")
