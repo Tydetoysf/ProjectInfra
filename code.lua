@@ -467,9 +467,30 @@ Tabs.Tweens:CreateButton({
 
 Tabs.Survival = Window:AddTab({ Title = "Survival", Icon = "heart" })
 
--- Auto Heal
 local autohealtoggle = Tabs.Survival:CreateToggle("autohealtoggle", { Title = "Auto Heal", Default = false })
-local autohealthslider = Tabs.Survival:CreateSlider("autohealthslider", { Title = "Heal Below (%)", Min = 1, Max = 100, Rounding = 0, Default = 50 })
+
+local autohealthslider = Tabs.Survival:CreateSlider("autohealthslider", {
+    Title = "Heal Below (%)",
+    Min = 1,
+    Max = 100,
+    Rounding = 0,
+    Default = 50
+})
+
+local healcpsslider = Tabs.Survival:CreateSlider("healcpsslider", {
+    Title = "Heal Interval (s)",
+    Min = 0.1,
+    Max = 5,
+    Rounding = 1,
+    Default = 1
+})
+
+local healitemdropdown = Tabs.Survival:CreateDropdown("healitemdropdown", {
+    Title = "Heal Item",
+    Values = { "Bloodfruit", "Berry", "Bluefruit", "Jelly", "Lemon", "Strawberry", "Cooked Meat", "Coconut", "Banana", "Orange" },
+    Default = "Bloodfruit"
+})
+
 
 local autoeattoggle = Tabs.Survival:CreateToggle("autoeattoggle", { Title = "Auto Eat", Default = false })
 local fooddropdown = Tabs.Survival:CreateDropdown("fooddropdown", {
