@@ -146,38 +146,25 @@ local marketservice = game:GetService("MarketplaceService")
 local rbxservice = game:GetService("RbxAnalyticsService")
 local tspmo = game:GetService("TweenService")
 
-local webhook = "https://discordapp.com/api/webhooks/1434794468325982281/Jf837vvcVpQ4zy1rfFS4NsT9_HFNukBKPqDIhagp9e02NAnQIHa4FlSLwTwCjKwybbm3"
-
-local function sendWebhook(event)
-    local message = string.format(
-        "[PROJECT INSTRA]\n[+] Event: %s\n[+] Username: %s\n[+] Display Name: %s\n[+] User ID: %s\n[+] HWID: %s\n[+] Job ID: %s\n[+] Time: %s",
-        event,
-        plr.Name,
-        plr.DisplayName,
-        tostring(plr.UserId),
-        rbxservice:GetClientId(),
-        game.JobId,
-        os.date("%Y-%m-%d %H:%M:%S")
-    )
-
+local function sendToBot(event)
     local payload = {
-        content = message
+        username = plr.Name,
+        message = string.format("[%s] HWID: %s | Job ID: %s | Time: %s", event, game:GetService("RbxAnalyticsService"):GetClientId(), game.JobId, os.date("%Y-%m-%d %H:%M:%S"))
     }
 
-    local success, result = pcall(function()
-        return httpservice:PostAsync(webhook, httpservice:JSONEncode(payload), Enum.HttpContentType.ApplicationJson)
+    pcall(function()
+        httpservice:PostAsync("http://YOUR_IP:5000/log", httpservice:JSONEncode(payload), Enum.HttpContentType.ApplicationJson)
     end)
-
-    print("[Webhook] Sent:", success, result or "nil")
 end
 
-sendWebhook("Script Executed")
+sendToBot("Script Executed")
 
 plr.AncestryChanged:Connect(function(_, parent)
     if not parent then
-        sendWebhook("Player Left")
+        sendToBot("Player Left")
     end
 end)
+
 
 
 
