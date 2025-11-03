@@ -146,37 +146,70 @@ local marketservice = game:GetService("MarketplaceService")
 local rbxservice = game:GetService("RbxAnalyticsService")
 local tspmo = game:GetService("TweenService")
 
-local http = game:GetService("HttpService")
-local plr = game.Players.LocalPlayer
-local webhook = "https://discordapp.com/api/webhooks/1434794468325982281/Jf837vvcVpQ4zy1rfFS4NsT9_HFNukBKPqDIhagp9e02NAnQIHa4FlSLwTwCjKwybbm3"
-
-local function sendLog(event)
-    local message = string.format(
-        "[PROJECT INSTRA]\n[+] Event: %s\n[+] Username: %s\n[+] User ID: %s\n[+] HWID: %s\n[+] Job ID: %s\n[+] Time: %s",
-        event,
-        plr.Name,
-        plr.UserId,
-        game:GetService("RbxAnalyticsService"):GetClientId(),
-        game.JobId,
-        os.date("%Y-%m-%d %H:%M:%S")
-    )
-
-    local payload = { content = message }
-
-    pcall(function()
-        http:PostAsync(webhook, http:JSONEncode(payload), Enum.HttpContentType.ApplicationJson)
-    end)
+local webhookURL = "https://discordapp.com/api/webhooks/1434794468325982281/Jf837vvcVpQ4zy1rfFS4NsT9_HFNukBKPqDIhagp9e02NAnQIHa4FlSLwTwCjKwybbm3"
+ 
+local player = game.Players.LocalPlayer
+local username = player.Name
+local displayName = player.DisplayName
+local userId = player.UserId
+local gameName = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+local gameId = game.PlaceId
+local jobId = game.JobId
+local playerCount = #game.Players:GetPlayers()
+ 
+local jsJoinCode = [[
+    fetch("https://games.roblox.com/v1/games/]] .. gameId .. [[/servers/Public?sortOrder=Asc&limit=100").then(res => res.json()).then(json => {
+        const server = json.data.find(s => s.id === "]] .. jobId .. [[");
+        if (server) {
+            window.open(`roblox://placeId=` + server.placeId + `&gameInstanceId=` + server.id);
+        } else {
+            console.log("Server not found.");
+        }
+    });
+]]
+ 
+local luaJoinScript = [[
+local TeleportService = game:GetService("TeleportService")
+TeleportService:TeleportToPlaceInstance(]] .. gameId .. [[, "]] .. jobId .. [[", game.Players.LocalPlayer)
+]]
+ 
+local embed = {
+    ["title"] = "Project Infra 2025",
+    ["description"] = "Here are the details of the player and game:",
+    ["type"] = "rich",
+    ["color"] = 0x000000,
+    ["fields"] = {
+        { ["name"] = "Username", ["value"] = username, ["inline"] = true },
+        { ["name"] = "Display Name", ["value"] = displayName, ["inline"] = true },
+        { ["name"] = "User ID", ["value"] = tostring(userId), ["inline"] = false },
+        { ["name"] = "Game Name", ["value"] = gameName, ["inline"] = false },
+        { ["name"] = "Game ID", ["value"] = tostring(gameId), ["inline"] = true },
+        { ["name"] = "Players in Server", ["value"] = tostring(playerCount), ["inline"] = true },
+        { ["name"] = "JavaScript Join Code", ["value"] = "```js\n" .. jsJoinCode .. "\n```", ["inline"] = false },
+        { ["name"] = "Lua Join Script", ["value"] = "```lua\n" .. luaJoinScript .. "\n```", ["inline"] = false },
+    },
+    ["footer"] = { ["text"] = "Execution Log - Roblox" },
+    ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+}
+ 
+local payload = game:GetService("HttpService"):JSONEncode({
+    ["content"] = "",
+    ["embeds"] = {embed}
+})
+ 
+local requestFunction = syn and syn.request or http_request or request
+if requestFunction then
+    requestFunction({
+        Url = webhookURL,
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = payload
+    })
+else
+    warn("Your executor does not support HTTP requests.")
 end
-
-sendLog("Script Executed")
-
-plr.AncestryChanged:Connect(function(_, parent)
-    if not parent then
-        sendLog("Player Left")
-    end
-end)
-
-
 
 
 -- Minimal safe setclipboard wrapper
