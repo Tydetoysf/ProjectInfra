@@ -46,14 +46,13 @@ local Window = Library:CreateWindow{
     MinimizeKey = Enum.KeyCode.LeftControl
 }
 
-local Tabs = {
+
 local mainTab = Luxt:Tab("Main")
 local combatTab = Luxt:Tab("Combat")
 local survivalTab = Luxt:Tab("Survival")
 local extraTab = Luxt:Tab("Extra")
 local tweensTab = Luxt:Tab("Tweens")
 
-}
 
 
 -- Safe require of Packets module (pcall)
