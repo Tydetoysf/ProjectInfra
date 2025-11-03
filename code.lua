@@ -1,17 +1,14 @@
--- Project Intra Hub -- Booga Booga Reborn
--- Fixed wiring: Tweens, Yakk, Settings, markers, and telemetry callbacks are wired and functional.
 print("Loading Project Intra Hub -- Booga Booga Reborn")
 print("-----------------------------------------")
-
 local Library = loadstring(game:HttpGetAsync("https://github.com/1dontgiveaf/Fluent-Renewed/releases/download/v1.0/Fluent.luau"))()
 local SaveManager = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/1dontgiveaf/Fluent-Renewed/refs/heads/main/Addons/SaveManager.luau"))()
 local InterfaceManager = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/1dontgiveaf/Fluent-Renewed/refs/heads/main/Addons/InterfaceManager.luau"))()
-
+ 
 local Window = Library:CreateWindow{
     Title = "Project Instra Hub -- Booga Booga Reborn",
     SubTitle = "by xylo",
     TabWidth = 160,
-    Size = UDim2.fromOffset(900, 560),
+    Size = UDim2.fromOffset(830, 525),
     Resize = true,
     MinSize = Vector2.new(470, 380),
     Acrylic = true,
@@ -26,144 +23,588 @@ local Tabs = {
     Pickup = Window:AddTab({ Title = "Pickup", Icon = "backpack" }),
     Farming = Window:AddTab({ Title = "Farming", Icon = "sprout" }),
     Extra = Window:AddTab({ Title = "Extra", Icon = "plus" }),
+    -- Added new Tabs: Tweens and Yakk; Settings remains as original
     Tweens = Window:AddTab({ Title = "Tweens", Icon = "sparkles" }),
     Yakk = Window:AddTab({ Title = "Yakk", Icon = "coins" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
--- Services / basic refs
 local rs = game:GetService("ReplicatedStorage")
-local packets = pcall(function() return require(rs.Modules.Packets) end) and require(rs.Modules.Packets) or {}
-local Players = game:GetService("Players")
-local plr = Players.LocalPlayer
-local char = plr and (plr.Character or plr.CharacterAdded:Wait())
-local root = char and char:FindFirstChild("HumanoidRootPart") or (char and char:WaitForChild("HumanoidRootPart"))
-local hum = char and (char:FindFirstChild("Humanoid") or char:WaitForChild("Humanoid"))
+local packets = require(rs.Modules.Packets)
+local plr = game.Players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+local root = char:WaitForChild("HumanoidRootPart")
+local hum = char:WaitForChild("Humanoid")
 local runs = game:GetService("RunService")
 local httpservice = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local localiservice = game:GetService("LocalizationService")
 local marketservice = game:GetService("MarketplaceService")
 local rbxservice = game:GetService("RbxAnalyticsService")
+local placestructure
 local tspmo = game:GetService("TweenService")
+local itemslist = {
+"Adurite", "Berry", "Bloodfruit", "Bluefruit", "Coin", "Essence", "Hide", "Ice Cube", "Iron", "Jelly", "Leaves", "Log", "Steel", "Stone", "Wood", "Gold", "Raw Gold", "Crystal Chunk", "Raw Emerald", "P[...]
+local Options = Library.Options
+--{MAIN TAB}
+local wstoggle = Tabs.Main:CreateToggle("wstoggle", { Title = "Walkspeed", Default = false })
+local wsslider = Tabs.Main:CreateSlider("wsslider", { Title = "Value", Min = 1, Max = 35, Rounding = 1, Default = 16 })
+local jptoggle = Tabs.Main:CreateToggle("jptoggle", { Title = "JumpPower", Default = false })
+local jpslider = Tabs.Main:CreateSlider("jpslider", { Title = "Value", Min = 1, Max = 65, Rounding = 1, Default = 50 })
+local hheighttoggle = Tabs.Main:CreateToggle("hheighttoggle", { Title = "HipHeight", Default = false })
+local hheightslider = Tabs.Main:CreateSlider("hheightslider", { Title = "Value", Min = 0.1, Max = 6.5, Rounding = 1, Default = 2 })
+local msatoggle = Tabs.Main:CreateToggle("msatoggle", { Title = "No Mountain Slip", Default = false })
+Tabs.Main:CreateButton({Title = "Copy Job ID", Callback = function() setclipboard(game.JobId) end})
+Tabs.Main:CreateButton({Title = "Copy HWID", Callback = function() setclipboard(rbxservice:GetClientId()) end})
+Tabs.Main:CreateButton({Title = "Copy SID", Callback = function() setclipboard(rbxservice:GetSessionId()) end})
+--{COMBAT TAB}
+local killauratoggle = Tabs.Combat:CreateToggle("killauratoggle", { Title = "Kill Aura", Default = false })
+local killaurarangeslider = Tabs.Combat:CreateSlider("killaurarange", { Title = "Range", Min = 1, Max = 9, Rounding = 1, Default = 5 })
+local katargetcountdropdown = Tabs.Combat:CreateDropdown("katargetcountdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6" }, Default = "1" })
+local kaswingcooldownslider = Tabs.Combat:CreateSlider("kaswingcooldownslider", { Title = "Attack Cooldown (s)", Min = 0.01, Max = 1.01, Rounding = 2, Default = 0.1 })
+--{MAP TAB}
+local resourceauratoggle = Tabs.Map:CreateToggle("resourceauratoggle", { Title = "Resource Aura", Default = false })
+local resourceaurarange = Tabs.Map:CreateSlider("resourceaurarange", { Title = "Range", Min = 1, Max = 20, Rounding = 1, Default = 20 })
+local resourcetargetdropdown = Tabs.Map:CreateDropdown("resourcetargetdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6" }, Default = "1" })
+local resourcecooldownslider = Tabs.Map:CreateSlider("resourcecooldownslider", { Title = "Swing Cooldown (s)", Min = 0.01, Max = 1.01, Rounding = 2, Default = 0.1 })
+local critterauratoggle = Tabs.Map:CreateToggle("critterauratoggle", { Title = "Critter Aura", Default = false })
+local critterrangeslider = Tabs.Map:CreateSlider("critterrangeslider", { Title = "Range", Min = 1, Max = 20, Rounding = 1, Default = 20 })
+local crittertargetdropdown = Tabs.Map:CreateDropdown("crittertargetdropdown", { Title = "Max Targets", Values = { "1", "2", "3", "4", "5", "6" }, Default = "1" })
+local crittercooldownslider = Tabs.Map:CreateSlider("crittercooldownslider", { Title = "Swing Cooldown (s)", Min = 0.01, Max = 1.01, Rounding = 2, Default = 0.1 })
+--{PICKUP TAB}
+local autopickuptoggle = Tabs.Pickup:CreateToggle("autopickuptoggle", { Title = "Auto Pickup", Default = false })
+local chestpickuptoggle = Tabs.Pickup:CreateToggle("chestpickuptoggle", { Title = "Auto Pickup From Chests", Default = false })
+local pickuprangeslider = Tabs.Pickup:CreateSlider("pickuprange", { Title = "Pickup Range", Min = 1, Max = 35, Rounding = 1, Default = 20 })
+local itemdropdown = Tabs.Pickup:CreateDropdown("itemdropdown", {Title = "Items", Values = {"Berry", "Bloodfruit", "Bluefruit", "Lemon", "Strawberry", "Gold", "Raw Gold", "Crystal Chunk", "Coin", "Coi[...]
+local droptoggle = Tabs.Pickup:AddToggle("droptoggle", { Title = "Auto Drop", Default = false })
+local dropdropdown = Tabs.Pickup:AddDropdown("dropdropdown", {Title = "Select Item to Drop", Values = { "Bloodfruit", "Jelly", "Bluefruit", "Log", "Leaves", "Wood" }, Default = "Bloodfruit"})
+local droptogglemanual = Tabs.Pickup:AddToggle("droptogglemanual", { Title = "Auto Drop Custom", Default = false })
+local droptextbox = Tabs.Pickup:AddInput("droptextbox", { Title = "Custom Item", Default = "Bloodfruit", Numeric = false, Finished = false })
+--{FARMING TAB}
+local fruitdropdown = Tabs.Farming:CreateDropdown("fruitdropdown", {Title = "Select Fruit",Values = {"Bloodfruit", "Bluefruit", "Lemon", "Coconut", "Jelly", "Banana", "Orange", "Oddberry", "Berry", "S[...]
+local planttoggle = Tabs.Farming:CreateToggle("planttoggle", { Title = "Auto Plant", Default = false })
+local plantrangeslider = Tabs.Farming:CreateSlider("plantrange", { Title = "Plant Range", Min = 1, Max = 30, Rounding = 1, Default = 30 })
+local plantdelayslider = Tabs.Farming:CreateSlider("plantdelay", { Title = "Plant Delay (s)", Min = 0.01, Max = 1, Rounding = 2, Default = 0.1 })
+local harvesttoggle = Tabs.Farming:CreateToggle("harvesttoggle", { Title = "Auto Harvest", Default = false })
+local harvestrangeslider = Tabs.Farming:CreateSlider("harvestrange", { Title = "Harvest Range", Min = 1, Max = 30, Rounding = 1, Default = 30 })
+Tabs.Farming:CreateParagraph("Aligned Paragraph", {Title = "Tween Stuff", Content = "Project Instra runs :(", TitleAlignment = "Middle", ContentAlignment = Enum.TextXAlignment.Center})
+local tweenplantboxtoggle = Tabs.Farming:AddToggle("tweentoplantbox", { Title = "Tween to Plant Box", Default = false })
+local tweenbushtoggle = Tabs.Farming:AddToggle("tweentobush", { Title = "Tween to Bush + Plant Box", Default = false })
+local tweenrangeslider = Tabs.Farming:AddSlider("tweenrange", { Title = "Range", Min = 1, Max = 250, Rounding = 1, Default = 250 })
+Tabs.Farming:CreateParagraph("Aligned Paragraph", {Title = "Plantbox Stuff", Content = "project instra runs :(", TitleAlignment = "Middle", ContentAlignment = Enum.TextXAlignment.Center})
+Tabs.Farming:CreateButton({Title = "Place 16x16 Plantboxes (256)", Callback = function() placestructure(16) end })
+Tabs.Farming:CreateButton({Title = "Place 15x15 Plantboxes (225)", Callback = function() placestructure(15) end })
+Tabs.Farming:CreateButton({Title = "Place 10x10 Plantboxes (100)", Callback = function() placestructure(10) end })
+Tabs.Farming:CreateButton({Title = "Place 5x5 Plantboxes (25)", Callback = function() placestructure(5) end })
+--{EXTRA TAB}
+Tabs.Extra:CreateButton({Title = "Infinite Yield", Description = "inf yield chat", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Tydetoysf/booga/main/code.lua"))() e[...]
+Tabs.Extra:CreateParagraph("Aligned Paragraph", {Title = "orbit breaks sometimes", Content = "i dont give a shit", TitleAlignment = "Middle", ContentAlignment = Enum.TextXAlignment.Center})
+local orbittoggle = Tabs.Extra:CreateToggle("orbittoggle", { Title = "Item Orbit", Default = false })
+local orbitrangeslider = Tabs.Extra:CreateSlider("orbitrange", { Title = "Grab Range", Min = 1, Max = 50, Rounding = 1, Default = 20 })
+local orbitradiusslider = Tabs.Extra:CreateSlider("orbitradius", { Title = "Orbit Radius", Min = 0, Max = 30, Rounding = 1, Default = 10 })
+local orbitspeedslider = Tabs.Extra:CreateSlider("orbitspeed", { Title = "Orbit Speed", Min = 0, Max = 10, Rounding = 1, Default = 5 })
+local itemheightslider = Tabs.Extra:CreateSlider("itemheight", { Title = "Item Height", Min = -3, Max = 10, Rounding = 1, Default = 3 })
+--{END OF TAB ELEMENTS}
 
--- helper: refresh character refs
-local function refresh_character_refs()
-    plr = Players.LocalPlayer
-    if not plr then return end
-    char = plr.Character or plr.CharacterAdded:Wait()
-    root = char:FindFirstChild("HumanoidRootPart") or char:WaitForChild("HumanoidRootPart")
-    hum = char:FindFirstChild("Humanoid") or char:WaitForChild("Humanoid")
-    print("[IntraHub] character refs refreshed")
-end
+local wscon, hhcon
+local function updws()
+    if wscon then wscon:Disconnect() end
 
-if not (plr and char and root and hum) then
-    refresh_character_refs()
-end
-
--- safe setclipboard
-local function safe_setclipboard(text)
-    pcall(function() if setclipboard then setclipboard(text) end end)
-end
-
--- Simple local telemetry (opt-in)
-local TELEMETRY = { sessions = {}, current = nil }
-local function telemetry_new_session()
-    local s = { id = httpservice:GenerateGUID(false), startTime = os.time(), endTime = nil, events = {} }
-    TELEMETRY.current = s
-    table.insert(TELEMETRY.sessions, s)
-    return s
-end
-local function telemetry_end_session()
-    if TELEMETRY.current then TELEMETRY.current.endTime = os.time(); TELEMETRY.current = nil end
-end
-local function telemetry_log(name, details)
-    if not telemetry_optin or not telemetry_optin.Value then return end
-    if not TELEMETRY.current then telemetry_new_session() end
-    table.insert(TELEMETRY.current.events, { time = os.time(), name = name, details = details or {} })
-end
-
--- Tween helper
-local activeTween = nil
-local function tween_to_cframe(targetCFrame, speedMultiplier)
-    if not root or not root.Parent then refresh_character_refs() end
-    if activeTween then
-        pcall(function() activeTween:Cancel() end)
-        activeTween = nil
+    if Options.wstoggle.Value or Options.jptoggle.Value then
+        wscon = runs.RenderStepped:Connect(function()
+            if hum then
+                hum.WalkSpeed = Options.wstoggle.Value and Options.wsslider.Value or 16
+                hum.JumpPower = Options.jptoggle.Value and Options.jpslider.Value or 50
+            end
+        end)
     end
-    local distance = (root.Position - targetCFrame.Position).Magnitude
-    local baseDuration = distance / 21
-    local duration = math.max(0.03, baseDuration / (speedMultiplier or 1))
+end
+
+local function updhh()
+    if hhcon then hhcon:Disconnect() end
+
+    if Options.hheighttoggle.Value then
+        hhcon = runs.RenderStepped:Connect(function()
+            if hum then
+                hum.HipHeight = Options.hheightslider.Value
+            end
+        end)
+    end
+end
+
+local function onplradded(newChar)
+    char = newChar
+    root = char:WaitForChild("HumanoidRootPart")
+    hum = char:WaitForChild("Humanoid")
+
+    updws()
+    updhh()
+end
+
+plr.CharacterAdded:Connect(onplradded)
+Options.wstoggle:OnChanged(updws)
+Options.jptoggle:OnChanged(updws)
+Options.hheighttoggle:OnChanged(updhh)
+
+local slopecon
+local function updmsa()
+    if slopecon then slopecon:Disconnect() end
+
+    if Options.msatoggle.Value then
+        slopecon = game:GetService("RunService").RenderStepped:Connect(function()
+            if hum then
+                hum.MaxSlopeAngle = 90
+            end
+        end)
+    else
+        if hum then
+            hum.MaxSlopeAngle = 46
+        end
+    end
+end
+
+Options.msatoggle:OnChanged(updmsa)
+
+local function getlayout(itemname)
+    local inventory = game:GetService("Players").LocalPlayer.PlayerGui.MainGui.RightPanel.Inventory:FindFirstChild("List")
+    if not inventory then
+        return nil
+    end
+    for _, child in ipairs(inventory:GetChildren()) do
+        if child:IsA("ImageLabel") and child.Name == itemname then
+            return child.LayoutOrder
+        end
+    end
+    return nil
+end
+
+local function swingtool(tspmogngicl)
+    if packets.SwingTool and packets.SwingTool.send then
+        packets.SwingTool.send(tspmogngicl)
+    end
+end
+
+local function pickup(entityid)
+    if packets.Pickup and packets.Pickup.send then
+        packets.Pickup.send(entityid)
+    end
+end
+
+local function drop(itemname)
+    local inventory = game:GetService("Players").LocalPlayer.PlayerGui.MainGui.RightPanel.Inventory:FindFirstChild("List")
+    if not inventory then return end
+
+    for _, child in ipairs(inventory:GetChildren()) do
+        if child:IsA("ImageLabel") and child.Name == itemname then
+            if packets and packets.DropBagItem and packets.DropBagItem.send then
+                packets.DropBagItem.send(child.LayoutOrder)
+            end
+        end
+    end
+end
+
+local selecteditems = {}
+itemdropdown:OnChanged(function(Value)
+    selecteditems = {} 
+    for item, State in pairs(Value) do
+        if State then
+            table.insert(selecteditems, item)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if not Options.killauratoggle.Value then
+            task.wait(0.1)
+            continue
+        end
+
+        local range = tonumber(Options.killaurarange.Value) or 20
+        local targetCount = tonumber(Options.katargetcountdropdown.Value) or 1
+        local cooldown = tonumber(Options.kaswingcooldownslider.Value) or 0.1
+        local targets = {}
+
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player ~= plr then
+                local playerfolder = workspace.Players:FindFirstChild(player.Name)
+                if playerfolder then
+                    local rootpart = playerfolder:FindFirstChild("HumanoidRootPart")
+                    local entityid = playerfolder:GetAttribute("EntityID")
+
+                    if rootpart and entityid then
+                        local dist = (rootpart.Position - root.Position).Magnitude
+                        if dist <= range then
+                            table.insert(targets, { eid = entityid, dist = dist })
+                        end
+                    end
+                end
+            end
+        end
+
+        if #targets > 0 then
+            table.sort(targets, function(a, b)
+                return a.dist < b.dist
+            end)
+
+            local selectedTargets = {}
+            for i = 1, math.min(targetCount, #targets) do
+                table.insert(selectedTargets, targets[i].eid)
+            end
+
+            swingtool(selectedTargets)
+        end
+
+        task.wait(cooldown)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if not Options.resourceauratoggle.Value then
+            task.wait(0.1)
+            continue
+        end
+
+        local range = tonumber(Options.resourceaurarange.Value) or 20
+        local targetCount = tonumber(Options.resourcetargetdropdown.Value) or 1
+        local cooldown = tonumber(Options.resourcecooldownslider.Value) or 0.1
+        local targets = {}
+        local allresources = {}
+
+        for _, r in pairs(workspace.Resources:GetChildren()) do
+            table.insert(allresources, r)
+        end
+        for _, r in pairs(workspace:GetChildren()) do
+            if r:IsA("Model") and r.Name == "Gold Node" then
+                table.insert(allresources, r)
+            end
+        end
+
+        for _, res in pairs(allresources) do
+            if res:IsA("Model") and res:GetAttribute("EntityID") then
+                local eid = res:GetAttribute("EntityID")
+                local ppart = res.PrimaryPart or res:FindFirstChildWhichIsA("BasePart")
+                if ppart then
+                    local dist = (ppart.Position - root.Position).Magnitude
+                    if dist <= range then
+                        table.insert(targets, { eid = eid, dist = dist })
+                    end
+                end
+            end
+        end
+
+        if #targets > 0 then
+            table.sort(targets, function(a, b)
+                return a.dist < b.dist
+            end)
+
+            local selectedTargets = {}
+            for i = 1, math.min(targetCount, #targets) do
+                table.insert(selectedTargets, targets[i].eid)
+            end
+
+            swingtool(selectedTargets)
+        end
+
+        task.wait(cooldown)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if not Options.critterauratoggle.Value then
+            task.wait(0.1)
+            continue
+        end
+
+        local range = tonumber(Options.critterrangeslider.Value) or 20
+        local targetCount = tonumber(Options.crittertargetdropdown.Value) or 1
+        local cooldown = tonumber(Options.crittercooldownslider.Value) or 0.1
+        local targets = {}
+
+        for _, critter in pairs(workspace.Critters:GetChildren()) do
+            if critter:IsA("Model") and critter:GetAttribute("EntityID") then
+                local eid = critter:GetAttribute("EntityID")
+                local ppart = critter.PrimaryPart or critter:FindFirstChildWhichIsA("BasePart")
+
+                if ppart then
+                    local dist = (ppart.Position - root.Position).Magnitude
+                    if dist <= range then
+                        table.insert(targets, { eid = eid, dist = dist })
+                    end
+                end
+            end
+        end
+
+        if #targets > 0 then
+            table.sort(targets, function(a, b)
+                return a.dist < b.dist
+            end)
+
+            local selectedTargets = {}
+            for i = 1, math.min(targetCount, #targets) do
+                table.insert(selectedTargets, targets[i].eid)
+            end
+
+            swingtool(selectedTargets)
+        end
+
+        task.wait(cooldown)
+    end
+end)
+
+
+
+task.spawn(function()
+    while true do
+        local range = tonumber(Options.pickuprange.Value) or 35
+
+        if Options.autopickuptoggle.Value then
+            for _, item in ipairs(workspace.Items:GetChildren()) do
+                if item:IsA("BasePart") or item:IsA("MeshPart") then
+                    local selecteditem = item.Name
+                    local entityid = item:GetAttribute("EntityID")
+
+                    if entityid and table.find(selecteditems, selecteditem) then
+                        local dist = (item.Position - root.Position).Magnitude
+                        if dist <= range then
+                            pickup(entityid)
+                        end
+                    end
+                end
+            end
+        end
+
+        if Options.chestpickuptoggle.Value then
+            for _, chest in ipairs(workspace.Deployables:GetChildren()) do
+                if chest:IsA("Model") and chest:FindFirstChild("Contents") then
+                    for _, item in ipairs(chest.Contents:GetChildren()) do
+                        if item:IsA("BasePart") or item:IsA("MeshPart") then
+                            local selecteditem = item.Name
+                            local entityid = item:GetAttribute("EntityID")
+
+                            if entityid and table.find(selecteditems, selecteditem) then
+                                local dist = (chest.PrimaryPart.Position - root.Position).Magnitude
+                                if dist <= range then
+                                    pickup(entityid)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+
+        task.wait(0.01)
+    end
+end)
+
+local debounce = 0
+local cd = 0 -- i genuinely dont know why it breaks now, but turn this up to 0.3 - 0.2 to stop it from dropping other items
+runs.Heartbeat:Connect(function()
+    if Options.droptoggle.Value then
+        if tick() - debounce >= cd then
+            local selectedItem = Options.dropdropdown.Value
+            drop(selectedItem)
+            debounce = tick()
+        end
+    end
+end)
+
+runs.Heartbeat:Connect(function()
+    if Options.droptogglemanual.Value then
+        if tick() - debounce >= cd then
+            local itemname = Options.droptextbox.Value
+            drop(itemname)
+            debounce = tick()
+        end
+    end
+end)
+
+local plantedboxes = {}
+local fruittoitemid = {
+    Bloodfruit = 94,
+    Bluefruit = 377,
+    Lemon = 99,
+    Coconut = 1,
+    Jelly = 604,
+    Banana = 606,
+    Orange = 602,
+    Oddberry = 32,
+    Berry = 35,
+    Strangefruit = 302,
+    Strawberry = 282,
+    Sunfruit = 128,
+    Pumpkin = 80,
+    ["Prickly Pear"] = 378,
+    Apple = 243,
+    Barley = 247,
+    Cloudberry = 101,
+    Carrot = 147
+}
+
+local function plant(entityid, itemID)
+    if packets.InteractStructure and packets.InteractStructure.send then
+        packets.InteractStructure.send({ entityID = entityid, itemID = itemID })
+        plantedboxes[entityid] = true
+    end
+end
+
+local function getpbs(range)
+    local plantboxes = {}
+    for _, deployable in ipairs(workspace.Deployables:GetChildren()) do
+        if deployable:IsA("Model") and deployable.Name == "Plant Box" then
+            local entityid = deployable:GetAttribute("EntityID")
+            local ppart = deployable.PrimaryPart or deployable:FindFirstChildWhichIsA("BasePart")
+            if entityid and ppart then
+                local dist = (ppart.Position - root.Position).Magnitude
+                if dist <= range then
+                    table.insert(plantboxes, { entityid = entityid, deployable = deployable, dist = dist })
+                end
+            end
+        end
+    end
+    return plantboxes
+end
+
+local function getbushes(range, fruitname)
+    local bushes = {}
+    for _, model in ipairs(workspace:GetChildren()) do
+        if model:IsA("Model") and model.Name:find(fruitname) then
+            local ppart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+            if ppart then
+                local dist = (ppart.Position - root.Position).Magnitude
+                if dist <= range then
+                    local entityid = model:GetAttribute("EntityID")
+                    if entityid then
+                        table.insert(bushes, { entityid = entityid, model = model, dist = dist })
+                    end
+                end
+            end
+        end
+    end
+    return bushes
+end
+
+local tweening = nil
+local function tween(target)
+    if tweening then tweening:Cancel() end
+    local distance = (root.Position - target.Position).Magnitude
+    local duration = distance / 21
     local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-    local t = tspmo:Create(root, tweenInfo, { CFrame = targetCFrame })
-    t:Play()
-    activeTween = t
-    return t, duration
+    local tween = tspmo:Create(root, tweenInfo, { CFrame = target })
+    tween:Play()
+    
+    tweening = tween
 end
 
-local function teleport_to_vector(v3)
-    if not char or not char.Parent then refresh_character_refs() end
+local function tweenplantbox(range)
+    while tweenplantboxtoggle.Value do
+        local plantboxes = getpbs(range)
+        table.sort(plantboxes, function(a, b) return a.dist < b.dist end)
+
+        for _, box in ipairs(plantboxes) do
+            if not box.deployable:FindFirstChild("Seed") then
+                local target = box.deployable.PrimaryPart.CFrame + Vector3.new(0, 5, 0)
+                tween(target)
+                break
+            end
+        end
+
+        task.wait(0.1)
+    end
+end
+
+local function tweenpbs(range, fruitname)
+    while tweenbushtoggle.Value do
+        local bushes = getbushes(range, fruitname)
+        table.sort(bushes, function(a, b) return a.dist < b.dist end)
+
+        if #bushes > 0 then
+            for _, bush in ipairs(bushes) do
+                local target = bush.model.PrimaryPart.CFrame + Vector3.new(0, 5, 0)
+                tween(target)
+                break
+            end
+        else
+            local plantboxes = getpbs(range)
+            table.sort(plantboxes, function(a, b) return a.dist < b.dist end)
+
+            for _, box in ipairs(plantboxes) do
+                if not box.deployable:FindFirstChild("Seed") then
+                    local target = box.deployable.PrimaryPart.CFrame + Vector3.new(0, 5, 0)
+                    tween(target)
+                    break
+                end
+            end
+        end
+
+        task.wait(0.1)
+    end
+end
+
+-- ======================
+-- NEW: Tweens & Yakk & Settings UI + minimal runtime hooks
+-- (Added with minimal changes to original code; no PII/externals)
+-- Place this block after tween function so it can use tween()
+-- ======================
+
+-- Tweens tab: simple named tween targets, walk (tween) or move (teleport)
+local TWEENS_STORE = {}
+
+local tweenNameInput = Tabs.Tweens:CreateInput({ Title = "Name", Default = "myTween", Numeric = false })
+local tweenXInput = Tabs.Tweens:CreateInput({ Title = "X", Default = "0", Numeric = true })
+local tweenYInput = Tabs.Tweens:CreateInput({ Title = "Y", Default = "0", Numeric = true })
+local tweenZInput = Tabs.Tweens:CreateInput({ Title = "Z", Default = "0", Numeric = true })
+local tweenSpeed = Tabs.Tweens:CreateSlider("tweenSpeed", { Title = "Speed multiplier", Min = 0.1, Max = 5, Rounding = 2, Default = 1 })
+local tweenWait = Tabs.Tweens:CreateSlider("tweenWait", { Title = "Wait after move (s)", Min = 0, Max = 2, Rounding = 2, Default = 0.05 })
+
+local tweenList = Tabs.Tweens:CreateDropdown("tweenList", { Title = "Saved Tweens", Values = {}, Default = "" })
+local tweenAddBtn = Tabs.Tweens:CreateButton({ Title = "Add Tween", Callback = function()
+    local name = tostring(tweenNameInput.Value or "tween")
+    local x = tonumber(tweenXInput.Value) or 0
+    local y = tonumber(tweenYInput.Value) or 0
+    local z = tonumber(tweenZInput.Value) or 0
+    TWEENS_STORE[name] = { pos = Vector3.new(x,y,z), speed = tweenSpeed.Value, wait = tweenWait.Value }
+    local vals = {}
+    for k,_ in pairs(TWEENS_STORE) do table.insert(vals, k) end
+    tweenList:SetValues(vals)
+    Library:Notify{ Title = "Tweens", Content = "Added tween: "..name, Duration = 3 }
+end })
+local tweenRunWalkBtn = Tabs.Tweens:CreateButton({ Title = "Walk to Tween (tween)", Callback = function()
+    local name = tweenList.Value
+    if not name or not TWEENS_STORE[name] then
+        Library:Notify{ Title = "Tweens", Content = "Select a saved tween first", Duration = 3 }
+        return
+    end
+    local cfg = TWEENS_STORE[name]
+    local targetCFrame = cfg.pos and cfg.pos or CFrame.new(0,5,0)
+    tween(targetCFrame and (typeof(targetCFrame)=="Vector3" and CFrame.new(targetCFrame) or targetCFrame) or CFrame.new(cfg.pos))
+    Library:Notify{ Title = "Tweens", Content = "Walking to "..name, Duration = 3 }
+end })
+local tweenRunMoveBtn = Tabs.Tweens:CreateButton({ Title = "Move to Tween (teleport)", Callback = function()
+    local name = tweenList.Value
+    if not name or not TWEENS_STORE[name] then
+        Library:Notify{ Title = "Tweens", Content = "Select a saved tween first", Duration = 3 }
+        return
+    end
+    local cfg = TWEENS_STORE[name]
     if char and char:FindFirstChild("HumanoidRootPart") then
-        char.HumanoidRootPart.CFrame = CFrame.new(v3.X, v3.Y + 2, v3.Z)
+        char.HumanoidRootPart.CFrame = CFrame.new(cfg.pos)
+        Library:Notify{ Title = "Tweens", Content = "Teleported to "..name, Duration = 3 }
     end
-end
+end })
 
--- Yakk waypoint markers
-local MARKER_FOLDER_NAME = "IntraHub_Yakk_Markers"
-local markers = {}
+-- Yakk tab: simple route runner that uses tween() to walk a route
+-- minimal controls: toggle, speed, wait, noclip while running
+local yakktoggle = Tabs.Yakk:CreateToggle("yakktoggle", { Title = "Enable Yakk (gold farm)", Default = false })
+local yakkspeed = Tabs.Yakk:CreateSlider("yakkspeed", { Title = "Speed multiplier (affects tween duration)", Min = 0.1, Max = 5, Rounding = 2, Default = 1 })
+local yakkwait = Tabs.Yakk:CreateSlider("yakkwait", { Title = "Wait after waypoint (s)", Min = 0, Max = 2, Rounding = 2, Default = 0.05 })
+local yakknoclip = Tabs.Yakk:CreateToggle("yakknoclip", { Title = "Enable noclip while Yakking", Default = true })
+Tabs.Yakk:CreateParagraph("Info", {Title = "Yakk", Content = "Simple Yakk runner using the existing tween() helper. No external telemetry."})
 
-local function create_markers_folder()
-    local f = workspace:FindFirstChild(MARKER_FOLDER_NAME)
-    if f and f:IsA("Folder") then return f end
-    local folder = Instance.new("Folder")
-    folder.Name = MARKER_FOLDER_NAME
-    folder.Parent = workspace
-    return folder
-end
-
-local function clear_markers()
-    for _, part in ipairs(markers) do
-        if part and part.Parent then pcall(function() part:Destroy() end) end
-    end
-    markers = {}
-    local folder = workspace:FindFirstChild(MARKER_FOLDER_NAME)
-    if folder and folder.Parent then pcall(function() folder:Destroy() end) end
-end
-
-local function create_marker(index, pos)
-    local folder = create_markers_folder()
-    local p = Instance.new("Part")
-    p.Anchored = true
-    p.CanCollide = false
-    p.Size = Vector3.new(1.2,1.2,1.2)
-    p.Shape = Enum.PartType.Ball
-    p.Material = Enum.Material.Neon
-    p.Color = Color3.fromRGB(255, 200, 0)
-    p.Transparency = 0.1
-    p.CFrame = CFrame.new(pos.X, pos.Y + 0.8, pos.Z)
-    p.Parent = folder
-
-    local bill = Instance.new("BillboardGui", p)
-    bill.Size = UDim2.new(0,120,0,36)
-    bill.AlwaysOnTop = true
-    local txt = Instance.new("TextLabel", bill)
-    txt.Size = UDim2.fromScale(1,1)
-    txt.BackgroundTransparency = 1
-    txt.TextScaled = true
-    txt.Text = "WP "..tostring(index)
-    txt.TextColor3 = Color3.new(1,1,1)
-    txt.Font = Enum.Font.SourceSansBold
-    return p
-end
-
-local function refresh_markers_from_list(list)
-    clear_markers()
-    for i, v in ipairs(list) do
-        local p = create_marker(i, v)
-        table.insert(markers, p)
-    end
-    Library:Notify{Title="Yakk", Content="Markers refreshed: "..tostring(#markers), Duration=3}
-end
-
--- Yakk route (default list; you can replace or import)
+-- Provide a default basic waypoint list for Yakk (you can edit/replace in code or expand)
 local YAKK_WAYPOINTS = {
     Vector3.new(-138.963, -33.749, -148.319),
     Vector3.new(-145.327, -34.570, -159.469),
@@ -174,279 +615,63 @@ local YAKK_WAYPOINTS = {
     Vector3.new(-115.615, -32.028, -181.052),
     Vector3.new(-111.158, -26.846, -183.843),
     Vector3.new(-109.632, -26.589, -191.211),
-    Vector3.new(-110.574, -26.726, -184.794),
-    Vector3.new(-112.805, -26.353, -189.045),
-    Vector3.new(-117.735, -26.174, -189.602),
-    Vector3.new(-122.506, -15.657, -200.508),
-    Vector3.new(-129.854, -11.880, -204.102),
-    Vector3.new(-122.557, -8.172, -205.548),
-    Vector3.new(-127.016, -6.681, -209.011),
-    Vector3.new(-124.574, -4.207, -213.521),
-    Vector3.new(-74.381, -1.507, -244.584),
-    Vector3.new(17.797, -3.000, -284.538),
-    Vector3.new(112.245, -3.115, -282.720),
-    Vector3.new(140.491, -3.487, -275.412),
-    Vector3.new(185.059, -4.352, -246.309),
-    Vector3.new(214.121, -3.000, -198.172),
-    Vector3.new(268.998, -3.058, -100.931),
-    Vector3.new(272.558, -6.993, -94.920),
-    -- many more points may be appended here...
     Vector3.new(-138.963, -33.749, -148.319) -- close loop
 }
 
--- runtime state for Yakk
 local yakk_running = false
-local yakk_runner_task = nil
-local yakk_paused = false
+local yakk_task = nil
 local yakk_noclip_conn = nil
 
-local function set_character_noclip(enable)
+local function set_noclip(enable)
+    if not char then return end
     if enable then
-        if not char then refresh_character_refs() end
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then part.CanCollide = false end
-        end
+        for _,p in ipairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end
         if yakk_noclip_conn then yakk_noclip_conn:Disconnect() end
-        yakk_noclip_conn = runs.Stepped:Connect(function()
-            if char then
-                for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then part.CanCollide = false end
-                end
-            end
-        end)
+        yakk_noclip_conn = runs.Stepped:Connect(function() for _,p in ipairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = false end end end)
     else
         if yakk_noclip_conn then yakk_noclip_conn:Disconnect(); yakk_noclip_conn = nil end
-        if char then
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = true end
-            end
-        end
+        for _,p in ipairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide = true end end
     end
 end
 
-local function run_yakk(speedMultiplier, waitAfter, noclipEnabled)
+local function start_yakk()
     if yakk_running then return end
     yakk_running = true
-    telemetry_log("yakk_started", { speed = speedMultiplier, wait = waitAfter, noclip = noclipEnabled })
-    if noclipEnabled then set_character_noclip(true) end
-
-    yakk_runner_task = task.spawn(function()
+    if yakknoclip.Value then set_noclip(true) end
+    yakk_task = task.spawn(function()
         local idx = 1
         while yakk_running do
-            if yakk_paused then task.wait(0.1); continue end
-            if not root or not root.Parent then refresh_character_refs() end
             local v = YAKK_WAYPOINTS[idx]
             if v and root and root.Parent then
-                local targetCFrame = CFrame.new(v.X, v.Y + 2, v.Z)
-                local t, dur = tween_to_cframe(targetCFrame, speedMultiplier or 1)
-                local waited = 0
-                local timeout = (dur or 0.5) + 2
-                while waited < timeout and t.PlaybackState ~= Enum.PlaybackState.Completed and yakk_running do
-                    task.wait(0.05)
-                    waited = waited + 0.05
+                local target = v and CFrame.new(v) or nil
+                if target then
+                    tween(target)
+                    -- short wait to allow tween to run / finish; server may enforce position updates
+                    task.wait((root.Position - v).Magnitude / (21 * (yakkspeed.Value or 1)) + 0.1)
                 end
-                telemetry_log("yakk_waypoint", { index = idx, pos = {x=v.X,y=v.Y,z=v.Z} })
-                task.wait(waitAfter or 0.05)
+                task.wait(yakkwait.Value)
             end
             idx = idx + 1
             if idx > #YAKK_WAYPOINTS then idx = 1 end
         end
-        set_character_noclip(false)
-        telemetry_log("yakk_stopped", {})
-        yakk_runner_task = nil
+        set_noclip(false)
     end)
 end
 
 local function stop_yakk()
-    if not yakk_running then return end
     yakk_running = false
+    if yakk_task then yakk_task = nil end
+    set_noclip(false)
 end
 
--- UI Creation: create elements AFTER helper functions so callbacks can reference them directly
-
--- MAIN tab
-local wstoggle_el = wstoggle
-local wsslider_el = wsslider
-local jptoggle_el = jptoggle
-local jpslider_el = jpslider
-local hheighttoggle_el = hheighttoggle
-local hheightslider_el = hheightslider
-local msatoggle_el = msatoggle
-
--- hooking walk/jump hip updates
-local wsconn, hhconn, slopeconn
-local function update_walk_jump()
-    if wsconn then wsconn:Disconnect() end
-    if wstoggle_el.Value or jptoggle_el.Value then
-        wsconn = runs.RenderStepped:Connect(function()
-            if hum then
-                hum.WalkSpeed = wstoggle_el.Value and wsslider_el.Value or 16
-                hum.JumpPower = jptoggle_el.Value and jpslider_el.Value or 50
-            end
-        end)
-    end
-end
-local function update_hip()
-    if hhconn then hhconn:Disconnect() end
-    if hheighttoggle_el.Value then
-        hhconn = runs.RenderStepped:Connect(function()
-            if hum then hum.HipHeight = hheightslider_el.Value end
-        end)
-    end
-end
-local function update_msa()
-    if slopeconn then slopeconn:Disconnect() end
-    if msatoggle_el.Value then
-        slopeconn = runs.RenderStepped:Connect(function()
-            if hum then hum.MaxSlopeAngle = 90 end
-        end)
-    else
-        if hum then hum.MaxSlopeAngle = 46 end
-    end
-end
-
-wstoggle_el:OnChanged(update_walk_jump)
-jptoggle_el:OnChanged(update_walk_jump)
-hheighttoggle_el:OnChanged(update_hip)
-msatoggle_el:OnChanged(update_msa)
-update_walk_jump(); update_hip(); update_msa()
-
--- TWEENS tab elements
-local tween_name_input = Tabs.Tweens:CreateInput({ Title = "Tween Name", Default = "myTween", Numeric = false })
-local tween_x_input = Tabs.Tweens:CreateInput({ Title = "X", Default = "0", Numeric = true })
-local tween_y_input = Tabs.Tweens:CreateInput({ Title = "Y", Default = "0", Numeric = true })
-local tween_z_input = Tabs.Tweens:CreateInput({ Title = "Z", Default = "0", Numeric = true })
-local tween_speed_slider = Tabs.Tweens:CreateSlider("tween_speed", { Title = "Speed multiplier", Min = 0.1, Max = 5, Rounding = 2, Default = 1 })
-local tween_wait_slider = Tabs.Tweens:CreateSlider("tween_wait", { Title = "Wait after move (s)", Min = 0, Max = 2, Rounding = 2, Default = 0.05 })
-local tween_add_btn = Tabs.Tweens:CreateButton({ Title = "Add Tween (to list)", Callback = function() end })
-local tween_list_dropdown = Tabs.Tweens:CreateDropdown("tween_list", { Title = "Saved Tweens", Values = {}, Default = "" })
-local tween_save_btn = Tabs.Tweens:CreateButton({ Title = "Save Tween Config", Callback = function() end })
-local tween_delete_btn = Tabs.Tweens:CreateButton({ Title = "Delete Selected Tween", Callback = function() end })
-local tween_run_walk_btn = Tabs.Tweens:CreateButton({ Title = "Walk to Selected Tween (tween)", Callback = function() end })
-local tween_run_move_btn = Tabs.Tweens:CreateButton({ Title = "Move to Selected Tween (teleport)", Callback = function() end })
-local tween_export_btn = Tabs.Tweens:CreateButton({ Title = "Export Tweens JSON", Callback = function() end })
-local tween_import_input = Tabs.Tweens:CreateInput({ Title = "Import Tweens JSON (paste)", Default = "", Numeric = false })
-local tween_import_btn = Tabs.Tweens:CreateButton({ Title = "Import Tweens from Paste", Callback = function() end })
-
--- Tweens data store and helper
-local TWEENS = {}
-local function refresh_tween_dropdown()
-    local list = {}
-    for k,_ in pairs(TWEENS) do table.insert(list, k) end
-    table.sort(list)
-    tween_list_dropdown:SetValues(list)
-end
-
--- Tweens callbacks
-tween_add_btn.Callback = function()
-    local name = tostring(tween_name_input.Value or "untitled"):gsub("%s+", "_")
-    local x = tonumber(tween_x_input.Value) or 0
-    local y = tonumber(tween_y_input.Value) or 0
-    local z = tonumber(tween_z_input.Value) or 0
-    local speed = tween_speed_slider.Value
-    local waitt = tween_wait_slider.Value
-    TWEENS[name] = { pos = Vector3.new(x, y, z), speed = speed, wait = waitt }
-    refresh_tween_dropdown()
-    telemetry_log("tween_added", { name = name, pos = {x=x,y=y,z=z}, speed = speed, wait = waitt })
-    Library:Notify{ Title = "Tweens", Content = "Added tween: "..name, Duration = 2 }
-    print("[IntraHub] Added tween:", name, x, y, z, speed, waitt)
-end
-
-tween_delete_btn.Callback = function()
-    local name = tween_list_dropdown.Value
-    if not name or name == "" or not TWEENS[name] then
-        Library:Notify{ Title = "Tweens", Content = "Select a tween to delete.", Duration = 2 }
-        return
-    end
-    TWEENS[name] = nil
-    refresh_tween_dropdown()
-    telemetry_log("tween_deleted", { name = name })
-    Library:Notify{ Title = "Tweens", Content = "Deleted tween: "..name, Duration = 2 }
-    print("[IntraHub] Deleted tween:", name)
-end
-
-tween_run_walk_btn.Callback = function()
-    local name = tween_list_dropdown.Value
-    if not name or name == "" or not TWEENS[name] then
-        Library:Notify{ Title = "Tweens", Content = "Select a tween to walk to.", Duration = 2 }
-        return
-    end
-    local tcfg = TWEENS[name]
-    if not root or not root.Parent then refresh_character_refs() end
-    local targetCF = CFrame.new(tcfg.pos.X, tcfg.pos.Y + 2, tcfg.pos.Z)
-    local t, dur = tween_to_cframe(targetCF, tcfg.speed or 1)
-    telemetry_log("tween_run_walk", { name = name })
-    Library:Notify{ Title = "Tweens", Content = "Walking to "..name, Duration = 2 }
-    print("[IntraHub] Walking to tween:", name)
-    task.spawn(function()
-        local waited = 0
-        local timeout = (dur or 0.5) + 2
-        while waited < timeout and t.PlaybackState ~= Enum.PlaybackState.Completed do
-            task.wait(0.05)
-            waited = waited + 0.05
-        end
-        task.wait(tcfg.wait or 0)
-        telemetry_log("tween_completed", { name = name })
-    end)
-end
-
-tween_run_move_btn.Callback = function()
-    local name = tween_list_dropdown.Value
-    if not name or name == "" or not TWEENS[name] then
-        Library:Notify{ Title = "Tweens", Content = "Select a tween to move to (teleport).", Duration = 2 }
-        return
-    end
-    local tcfg = TWEENS[name]
-    teleport_to_vector(tcfg.pos)
-    telemetry_log("tween_run_move", { name = name })
-    Library:Notify{ Title = "Tweens", Content = "Teleported to "..name, Duration = 2 }
-    print("[IntraHub] Teleported to tween:", name)
-end
-
-tween_export_btn.Callback = function()
-    local export = {}
-    for k,v in pairs(TWEENS) do
-        export[k] = { pos = {x=v.pos.X, y=v.pos.Y, z=v.pos.Z}, speed = v.speed, wait = v.wait }
-    end
-    local ok, json = pcall(function() return httpservice:JSONEncode(export) end)
-    if ok and json then safe_setclipboard(json); Library:Notify{Title="Tweens", Content="Tweens JSON copied to clipboard.", Duration=3} end
-end
-
-tween_import_btn.Callback = function()
-    local text = tween_import_input.Value or ""
-    if text == "" then Library:Notify{Title="Tweens", Content="Paste JSON into import field.", Duration=2}; return end
-    local ok, tbl = pcall(function() return httpservice:JSONDecode(text) end)
-    if not ok or type(tbl) ~= "table" then Library:Notify{Title="Tweens", Content="Invalid JSON.", Duration=2}; return end
-    for name, info in pairs(tbl) do
-        if type(info) == "table" and info.pos then
-            TWEENS[name] = { pos = Vector3.new(info.pos.x or 0, info.pos.y or 0, info.pos.z or 0), speed = info.speed or 1, wait = info.wait or 0 }
-        end
-    end
-    refresh_tween_dropdown()
-    telemetry_log("tweens_imported", { count = 0 + (function() local c=0; for _ in pairs(tbl) do c=c+1 end; return c end)() })
-    Library:Notify{Title="Tweens", Content="Imported tweens.", Duration=3}
-    print("[IntraHub] Imported tweens:", tostring(#(tbl or {})))
-end
-
--- refresh dropdown initially
-refresh_tween_dropdown()
-
--- Yakk tab elements (show markers, refresh)
-local yakktoggle_el = Tabs.Yakk:CreateToggle("yakktoggle", { Title = "Enable Yakk (gold farm)", Default = false })
-local yakkspeed_el = Tabs.Yakk:CreateSlider("yakkspeed", { Title = "Speed multiplier", Min = 0.1, Max = 5, Rounding = 2, Default = 1 })
-local yakkwait_el = Tabs.Yakk:CreateSlider("yakkwait", { Title = "Wait after waypoint (s)", Min = 0, Max = 2, Rounding = 2, Default = 0.05 })
-local yakknoclip_el = Tabs.Yakk:CreateToggle("yakknoclip", { Title = "Enable noclip while Yakking", Default = true })
-local yakk_show_markers_el = Tabs.Yakk:CreateToggle("yakk_show_markers", { Title = "Show waypoint markers", Default = true })
-local yakk_refresh_btn = Tabs.Yakk:CreateButton({ Title = "Refresh Markers", Callback = function() refresh_markers_from_list(YAKK_WAYPOINTS) end })
-local yakk_pause_btn = Tabs.Yakk:CreateButton({ Title = "Pause/Resume Yakk", Callback = function() yakk_paused = not yakk_paused; Library:Notify{Title="Yakk", Content = yakk_paused and "Paused" or "Resumed", Duration=2} end })
-local yakk_teleport_first_btn = Tabs.Yakk:CreateButton({ Title = "Teleport to first waypoint", Callback = function() if #YAKK_WAYPOINTS>0 then teleport_to_vector(YAKK_WAYPOINTS[1]); Library:Notify{Title="Yakk", Content="Teleported to first waypoint", Duration=2} end end })
-
--- Wire Yakk toggle
-yakktoggle_el:OnChanged(function(val)
-    telemetry_log("yakk_toggle", { value = val })
+yakktoggle:OnChanged(function(val)
     if val then
-        refresh_character_refs()
-        run_yakk(yakkspeed_el.Value, yakkwait_el.Value, yakknoclip_el.Value)
+        -- ensure char/root references are present
+        plr = game.Players.LocalPlayer
+        char = plr.Character or plr.CharacterAdded:Wait()
+        root = char:WaitForChild("HumanoidRootPart")
+        hum = char:FindFirstChild("Humanoid") or hum
+        start_yakk()
         Library:Notify{Title="Yakk", Content="Yakk started", Duration=3}
     else
         stop_yakk()
@@ -454,242 +679,177 @@ yakktoggle_el:OnChanged(function(val)
     end
 end)
 
--- show/hide markers based on toggle and initial state
-yakk_show_markers_el:OnChanged(function(val)
-    if val then refresh_markers_from_list(YAKK_WAYPOINTS) else clear_markers() end
-end)
+-- Settings tab: minimal (keeps SaveManager and InterfaceManager hooks; allow user to copy some values)
+Tabs.Settings:CreateParagraph("Info", { Title = "Settings", Content = "This Settings tab is intentionally minimal; no PII collection. Use SaveManager in Settings to persist configs." })
+Tabs.Settings:CreateButton({ Title = "Copy Local HWID (client id)", Callback = function() pcall(setclipboard, rbxservice:GetClientId()); Library:Notify{ Title = "Settings", Content = "ClientId copied to clipboard (local).", Duration = 3 } end })
+Tabs.Settings:CreateButton({ Title = "Copy Job/Place ID", Callback = function() pcall(setclipboard, tostring(game.PlaceId) .. " / " .. tostring(game.JobId)); Library:Notify{ Title = "Settings", Content = "IDs copied to clipboard.", Duration = 3 } end })
 
--- ensure markers start visible if toggle is default true
-if yakk_show_markers_el.Value then refresh_markers_from_list(YAKK_WAYPOINTS) end
+-- End of added Tweens/Yakk/Settings block
+-- ======================
 
--- noclip immediate toggle effect if Yakk running
-yakknoclip_el:OnChanged(function(val)
-    if yakk_running then set_character_noclip(val) end
-end)
-
--- hook toggles for telemetry (local variable references)
-local function hook_toggle_for_telemetry(optionObj, name)
-    if not optionObj then return end
-    optionObj:OnChanged(function(value) telemetry_log("toggle_changed", { toggle = name, value = value }) end)
-end
-hook_toggle_for_telemetry(planttoggle, "AutoPlant")
-hook_toggle_for_telemetry(harvesttoggle, "AutoHarvest")
-hook_toggle_for_telemetry(autopickuptoggle, "AutoPickup")
-hook_toggle_for_telemetry(orbittoggle, "Orbit")
-hook_toggle_for_telemetry(killauratoggle, "KillAura")
-hook_toggle_for_telemetry(yakktoggle_el, "Yakk")
-
--- Planting/harvesting/pickup loops (use local UI toggle objects explicitly)
-local plantedboxes = {}
-local fruittoitemid = {
-    Bloodfruit = 94, Bluefruit = 377, Lemon = 99, Coconut = 1, Jelly = 604,
-    Banana = 606, Orange = 602, Oddberry = 32, Berry = 35, Strangefruit = 302,
-    Strawberry = 282, Sunfruit = 128, Pumpkin = 80, ["Prickly Pear"] = 378,
-    Apple = 243, Barley = 247, Cloudberry = 101, Carrot = 147
-}
-
-local function plant_structure(entityid, itemID)
-    if packets and packets.InteractStructure and packets.InteractStructure.send then
-        packets.InteractStructure.send({ entityID = entityid, itemID = itemID })
-        plantedboxes[entityid] = true
-    end
-end
-
-local function get_plantboxes(range)
-    local out = {}
-    local deployables = workspace:FindFirstChild("Deployables")
-    if not deployables then return out end
-    for _, deployable in ipairs(deployables:GetChildren()) do
-        if deployable:IsA("Model") and deployable.Name == "Plant Box" then
-            local entityid = deployable:GetAttribute("EntityID")
-            local ppart = deployable.PrimaryPart or deployable:FindFirstChildWhichIsA("BasePart")
-            if entityid and ppart then
-                local dist = (ppart.Position - root.Position).Magnitude
-                if dist <= range then table.insert(out, { entityid = entityid, deployable = deployable, dist = dist }) end
-            end
-        end
-    end
-    return out
-end
-
-local function get_bushes(range, fruitname)
-    local out = {}
-    for _, model in ipairs(workspace:GetChildren()) do
-        if model:IsA("Model") and model.Name:find(fruitname) then
-            local ppart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
-            if ppart then
-                local dist = (ppart.Position - root.Position).Magnitude
-                if dist <= range then
-                    local entityid = model:GetAttribute("EntityID")
-                    if entityid then table.insert(out, { entityid = entityid, model = model, dist = dist }) end
-                end
-            end
-        end
-    end
-    return out
-end
-
--- Plant loop (batched)
 task.spawn(function()
     while true do
-        if not planttoggle.Value then task.wait(0.05); continue end
-        if not root or not root.Parent then refresh_character_refs() end
-        local range = tonumber(plantrangeslider.Value) or 30
-        local delay = tonumber(plantdelayslider.Value) or 0.05
-        local burst = tonumber(plantburstsizeslider.Value) or 6
-        local selectedfruit = fruitdropdown.Value
+        if not Options.planttoggle.Value then
+            task.wait(000.1)
+            continue
+        end
+
+        local range = tonumber(Options.plantrange.Value) or 30
+        local delay = tonumber(Options.plantdelay.Value) or 000.1
+        local selectedfruit = Options.fruitdropdown.Value
         local itemID = fruittoitemid[selectedfruit] or 94
-        local boxes = get_plantboxes(range)
-        table.sort(boxes, function(a,b) return a.dist < b.dist end)
-        local i = 1
-        while i <= #boxes do
-            local endIdx = math.min(i + burst - 1, #boxes)
-            for j = i, endIdx do
-                local box = boxes[j]
-                if box and box.deployable and not box.deployable:FindFirstChild("Seed") then
-                    task.spawn(function() plant_structure(box.entityid, itemID) end)
-                else
-                    if box and box.entityid then plantedboxes[box.entityid] = true end
-                end
+        local plantboxes = getpbs(range)
+        table.sort(plantboxes, function(a, b) return a.dist < b.dist end)
+
+        for _, box in ipairs(plantboxes) do
+            if not box.deployable:FindFirstChild("Seed") then
+                plant(box.entityid, itemID)
+            else
+                plantedboxes[box.entityid] = true
             end
-            i = endIdx + 1
-            task.wait(0)
         end
         task.wait(delay)
     end
 end)
 
--- Harvest loop
 task.spawn(function()
     while true do
-        if not harvesttoggle.Value then task.wait(0.1); continue end
-        if not root or not root.Parent then refresh_character_refs() end
-        local range = tonumber(harvestrangeslider.Value) or 30
-        local selectedfruit = fruitdropdown.Value
-        local bushes = get_bushes(range, selectedfruit)
-        table.sort(bushes, function(a,b) return a.dist < b.dist end)
-        for _, bush in ipairs(bushes) do pickup(bush.entityid) end
+        if not Options.harvesttoggle.Value then
+            task.wait(0.1)
+            continue
+        end
+        local harvestrange = tonumber(Options.harvestrange.Value) or 30
+        local selectedfruit = Options.fruitdropdown.Value
+        local bushes = getbushes(harvestrange, selectedfruit)
+        table.sort(bushes, function(a, b) return a.dist < b.dist end)
+        for _, bush in ipairs(bushes) do
+            pickup(bush.entityid)
+        end
         task.wait(0.1)
     end
 end)
 
--- Auto pickup loop
 task.spawn(function()
     while true do
-        if not autopickuptoggle.Value then task.wait(0.05); continue end
-        if not root or not root.Parent then refresh_character_refs() end
-        local range = tonumber(pickuprangeslider.Value) or 35
-        for _, item in ipairs(workspace:FindFirstChild("Items") and workspace.Items:GetChildren() or {}) do
-            local primary = (item:IsA("BasePart") and item) or (item:IsA("Model") and item.PrimaryPart)
-            if primary then
-                local eid = item:GetAttribute("EntityID")
-                if eid and (primary.Position - root.Position).Magnitude <= range then
-                    pickup(eid)
-                end
-            end
+        if not tweenplantboxtoggle.Value then
+            task.wait(00.1)
+            continue
         end
-        task.wait(0.05)
-    end
-end)
-
--- Kill Aura / Resource Aura / Critter Aura loops: use local toggles (kept relatively unchanged)
-task.spawn(function()
-    while true do
-        if not killauratoggle.Value then task.wait(0.1); continue end
-        local range = tonumber(killaurarangeslider.Value) or 20
-        local targetCount = tonumber(katargetcountdropdown.Value) or 1
-        local cooldown = tonumber(kaswingcooldownslider.Value) or 0.1
-        local targets = {}
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= plr then
-                local pf = workspace.Players:FindFirstChild(player.Name)
-                if pf then
-                    local rootpart = pf:FindFirstChild("HumanoidRootPart")
-                    local eid = pf:GetAttribute("EntityID")
-                    if rootpart and eid then
-                        local dist = (rootpart.Position - root.Position).Magnitude
-                        if dist <= range then table.insert(targets, {eid=eid, dist=dist}) end
-                    end
-                end
-            end
-        end
-        if #targets > 0 then
-            table.sort(targets, function(a,b) return a.dist < b.dist end)
-            local sel = {}
-            for i = 1, math.min(targetCount, #targets) do table.insert(sel, targets[i].eid) end
-            if packets and packets.SwingTool and packets.SwingTool.send then packets.SwingTool.send(sel) end
-        end
-        task.wait(cooldown)
+        local range = tonumber(Options.tweenrange.Value) or 250
+        tweenplantbox(range)
     end
 end)
 
 task.spawn(function()
     while true do
-        if not resourceauratoggle.Value then task.wait(0.1); continue end
-        local range = tonumber(resourceaurarange.Value) or 20
-        local targetCount = tonumber(resourcetargetdropdown.Value) or 1
-        local cooldown = tonumber(resourcecooldownslider.Value) or 0.1
-        local targets = {}
-        local resources = {}
-        for _, r in ipairs(workspace:GetChildren()) do
-            if r:IsA("Model") and (r:GetAttribute("EntityID") or r.Name == "Gold Node") then table.insert(resources, r) end
+        if not tweenbushtoggle.Value then
+            task.wait(0.1)
+            continue
         end
-        for _, res in ipairs(resources) do
-            local eid = res:GetAttribute("EntityID")
-            local ppart = res.PrimaryPart or res:FindFirstChildWhichIsA("BasePart")
-            if ppart and eid then
-                local dist = (ppart.Position - root.Position).Magnitude
-                if dist <= range then table.insert(targets, {eid=eid, dist=dist}) end
-            end
-        end
-        if #targets > 0 then
-            table.sort(targets, function(a,b) return a.dist < b.dist end)
-            local sel = {}
-            for i = 1, math.min(targetCount, #targets) do table.insert(sel, targets[i].eid) end
-            if packets and packets.SwingTool and packets.SwingTool.send then packets.SwingTool.send(sel) end
-        end
-        task.wait(cooldown)
+        local range = tonumber(Options.tweenrange.Value) or 20
+        local selectedfruit = Options.fruitdropdown.Value
+        tweenpbs(range, selectedfruit)
     end
 end)
 
--- Drop logic (keeps original idea)
-local debounce = 0
-local cd = 0
-runs.Heartbeat:Connect(function()
-    if droptoggle.Value then
-        if tick() - debounce >= cd then
-            local selectedItem = dropdropdown.Value
-            local inv = Players.LocalPlayer.PlayerGui and Players.LocalPlayer.PlayerGui.MainGui and Players.LocalPlayer.PlayerGui.MainGui.RightPanel and Players.LocalPlayer.PlayerGui.MainGui.RightPanel.Inventory and Players.LocalPlayer.PlayerGui.MainGui.RightPanel.Inventory:FindFirstChild("List")
-            if inv then
-                for _, child in ipairs(inv:GetChildren()) do
-                    if child:IsA("ImageLabel") and child.Name == selectedItem then
-                        if packets and packets.DropBagItem and packets.DropBagItem.send then packets.DropBagItem.send(child.LayoutOrder) end
+placestructure = function(gridsize)
+    if not plr or not plr.Character then return end
+
+    local torso = plr.Character:FindFirstChild("HumanoidRootPart")
+    if not torso then return end
+
+    local startpos = torso.Position - Vector3.new(0, 3, 0)
+    local spacing = 6.04
+
+    for x = 0, gridsize - 1 do
+        for z = 0, gridsize - 1 do
+            task.wait(0.3)
+            local position = startpos + Vector3.new(x * spacing, 0, z * spacing)
+
+            if packets.PlaceStructure and packets.PlaceStructure.send then
+                packets.PlaceStructure.send{
+                    ["buildingName"] = "Plant Box",
+                    ["yrot"] = 45,
+                    ["vec"] = position,
+                    ["isMobile"] = false
+                }
+            end
+        end
+    end
+end
+
+local orbiton, range, orbitradius, orbitspeed, itemheight = false, 20, 10, 5, 3
+local attacheditems, itemangles, lastpositions = {}, {}, {}
+local itemsfolder = workspace:WaitForChild("Items")
+
+orbittoggle:OnChanged(function(value)
+    orbiton = value
+    if not orbiton then
+        for _, bp in pairs(attacheditems) do bp:Destroy() end
+        table.clear(attacheditems)
+        table.clear(itemangles)
+        table.clear(lastpositions)
+    else
+        task.spawn(function()
+            while orbiton do
+                for item, bp in pairs(attacheditems) do
+                    if item then
+                        local currentpos = item.Position
+                        local lastpos = lastpositions[item]
+                        
+                        if lastpos and (currentpos - lastpos).Magnitude < 0.1 then
+                            if packets.ForceInteract and packets.ForceInteract.send then
+                                packets.ForceInteract.send(item:GetAttribute("EntityID"))
+                            end
+                        end
+
+                        lastpositions[item] = currentpos
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
+    end
+end)
+
+orbitrangeslider:OnChanged(function(value) range = value end)
+orbitradiusslider:OnChanged(function(value) orbitradius = value end)
+orbitspeedslider:OnChanged(function(value) orbitspeed = value end)
+itemheightslider:OnChanged(function(value) itemheight = value end)
+
+runs.RenderStepped:Connect(function()
+    if not orbiton then return end
+    local time = tick() * orbitspeed
+    for item, bp in pairs(attacheditems) do
+        if item then
+            local angle = itemangles[item] + time
+            bp.Position = root.Position + Vector3.new(math.cos(angle) * orbitradius, itemheight, math.sin(angle) * orbitradius)
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if orbiton then
+            local children, index = itemsfolder:GetChildren(), 0
+            local anglestep = (math.pi * 2) / math.max(#children, 1)
+
+            for _, item in pairs(children) do
+                local primary = item:IsA("BasePart") and item or item:IsA("Model") and item.PrimaryPart
+                if primary and (primary.Position - root.Position).Magnitude <= range then
+                    if not attacheditems[primary] then
+                        local bp = Instance.new("BodyPosition")
+                        bp.MaxForce, bp.D, bp.P, bp.Parent = Vector3.new(math.huge, math.huge, math.huge), 1500, 25000, primary
+                        attacheditems[primary], itemangles[primary], lastpositions[primary] = bp, index * anglestep, primary.Position
+                        index += 1
                     end
                 end
             end
-            debounce = tick()
         end
+        task.wait()
     end
 end)
 
-runs.Heartbeat:Connect(function()
-    if droptogglemanual.Value then
-        if tick() - debounce >= cd then
-            local itemname = droptextbox.Value
-            local inv = Players.LocalPlayer.PlayerGui and Players.LocalPlayer.PlayerGui.MainGui and Players.LocalPlayer.PlayerGui.MainGui.RightPanel and Players.LocalPlayer.PlayerGui.MainGui.RightPanel.Inventory and Players.LocalPlayer.PlayerGui.MainGui.RightPanel.Inventory:FindFirstChild("List")
-            if inv then
-                for _, child in ipairs(inv:GetChildren()) do
-                    if child:IsA("ImageLabel") and child.Name == itemname then
-                        if packets and packets.DropBagItem and packets.DropBagItem.send then packets.DropBagItem.send(child.LayoutOrder) end
-                    end
-                end
-            end
-            debounce = tick()
-        end
-    end
-end)
-
--- SaveManager / InterfaceManager hooks
 SaveManager:SetLibrary(Library)
 InterfaceManager:SetLibrary(Library)
 SaveManager:IgnoreThemeSettings()
@@ -699,13 +859,10 @@ SaveManager:SetFolder("FluentScriptHub/specific-game")
 InterfaceManager:BuildInterfaceSection(Tabs.Settings)
 SaveManager:BuildConfigSection(Tabs.Settings)
 Window:SelectTab(1)
-
-Library:Notify{ Title = "Project Instra Hub", Content = "Loaded and fixed UI wiring. Test Tweens/Yakk.", Duration = 8 }
+Library:Notify{
+    Title = "Project Instra Hub",
+    Content = "Loaded, Enjoy!",
+    Duration = 8
+}
 SaveManager:LoadAutoloadConfig()
 print("Done! Enjoy Project Instra Hub!")
-
--- Ensure telemetry saved on close (best-effort)
-game:BindToClose(function()
-    telemetry_log("script_unloaded", {})
-    telemetry_end_session()
-end)
