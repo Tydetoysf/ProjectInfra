@@ -598,12 +598,12 @@ task.spawn(function()
         local char = LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         if hum then
-            local currentHealth = hum.Health
-            local maxHealth = hum.MaxHealth
+            local hp = hum.Health
+            local maxhp = hum.MaxHealth
             local fruit = fruitdropdown.Value
 
             -- Auto Heal
-            if autohealtoggle.Value and currentHealth / maxHealth * 100 <= autohealthslider.Value then
+            if autohealtoggle.Value and (hp / maxhp * 100) <= autohealthslider.Value then
                 if packets and packets.UseBagItem and type(packets.UseBagItem.send) == "function" then
                     pcall(function()
                         packets.UseBagItem.send(fruit)
@@ -611,7 +611,7 @@ task.spawn(function()
                 end
             end
 
-            -- Auto Eat Periodically
+            -- Auto Eat
             if autoeattoggle.Value and tick() - lastEat >= autoeatdelay.Value then
                 if packets and packets.UseBagItem and type(packets.UseBagItem.send) == "function" then
                     pcall(function()
@@ -621,9 +621,10 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.5)
+        task.wait(0.25)
     end
 end)
+
 
 
 -- Resource aura
