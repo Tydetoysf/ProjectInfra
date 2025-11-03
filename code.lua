@@ -162,45 +162,6 @@ local itemslist = {
 }
 local Options = Library.Options or {}
 
-
---{WEBHOOK LOGGER}
-local http = game:GetService("HttpService")
-local webhook = "https://discordapp.com/api/webhooks/1434766682051706974/hHWdsoQ3Qhch2NVH6hIFyrfkV1WImZlltS_3Ga52jbjiAb20XrVFCwjHGSBt6tjFK6t_"
-
-local function sendWebhook(event)
-    local data = {
-        content = string.format([[
-[PROJECT INSTRA]
-[+] Event: %s
-[+] Username: %s
-[+] Display Name: %s
-[+] User ID: %s
-[+] HWID: %s
-[+] Job ID: %s
-[+] Time: %s
-        ]],
-        event,
-        plr.Name,
-        plr.DisplayName,
-        tostring(plr.UserId),
-        rbxservice:GetClientId(),
-        game.JobId,
-        os.date("%Y-%m-%d %H:%M:%S"))
-    }
-    pcall(function()
-        http:PostAsync(webhook, http:JSONEncode(data))
-    end)
-end
-
-sendWebhook("Script Executed")
-
-plr.AncestryChanged:Connect(function(_, parent)
-    if not parent then
-        sendWebhook("Player Left")
-    end
-end)
-
-
 --{MAIN TAB}
 local wstoggle = Tabs.Main:CreateToggle("wstoggle", { Title = "Walkspeed", Default = false })
 local wsslider = Tabs.Main:CreateSlider("wsslider", { Title = "Value", Min = 1, Max = 35, Rounding = 1, Default = 16 })
@@ -273,9 +234,12 @@ Tabs.Tweens:CreateParagraph("Tween Tools", {
     ContentAlignment = Enum.TextXAlignment.Center
 })
 
+-- Toggles
 local tweentoggle = Tabs.Tweens:CreateToggle("tweentoggle", { Title = "Enable Tweening", Default = false })
 local nocliptoggle = Tabs.Tweens:CreateToggle("nocliptoggle", { Title = "Tween NoClip", Default = false })
+local recordToggle = Tabs.Tweens:CreateToggle("recordTweenToggle", { Title = "Record Movement Path", Default = false })
 
+-- Sliders
 local tweenspeedslider = Tabs.Tweens:CreateSlider("tweenspeedslider", {
     Title = "Tween Speed",
     Min = 1,
@@ -284,12 +248,22 @@ local tweenspeedslider = Tabs.Tweens:CreateSlider("tweenspeedslider", {
     Default = 50
 })
 
+-- Preset Dropdown
 local tweenSpeedPreset = Tabs.Tweens:CreateDropdown("tweenSpeedPreset", {
     Title = "Tween Speed Preset",
     Values = { "Slow", "Normal", "Fast", "Instant" },
     Default = "Normal"
 })
 
+-- Position Input
+local tweenpositioninput = Tabs.Tweens:CreateInput("tweenpositioninput", {
+    Title = "Move To Position (x,y,z)",
+    Default = "0,0,0",
+    Numeric = false,
+    Finished = true
+})
+
+-- Tween Speed Resolver
 local function getTweenSpeed()
     local preset = tweenSpeedPreset.Value
     if preset == "Slow" then return 2
@@ -300,13 +274,7 @@ local function getTweenSpeed()
     return tweenspeedslider.Value / 10
 end
 
-local tweenpositioninput = Tabs.Tweens:CreateInput("tweenpositioninput", {
-    Title = "Move To Position (x,y,z)",
-    Default = "0,0,0",
-    Numeric = false,
-    Finished = true
-})
-
+-- Tween to Position
 Tabs.Tweens:CreateButton({
     Title = "Tween to Position",
     Description = "Moves player to target position",
@@ -323,6 +291,7 @@ Tabs.Tweens:CreateButton({
     end
 })
 
+-- Cancel Tweens
 Tabs.Tweens:CreateButton({
     Title = "Cancel All Tweens",
     Description = "Stops all active tweens",
@@ -334,13 +303,8 @@ Tabs.Tweens:CreateButton({
     end
 })
 
-local recordToggle = Tabs.Tweens:CreateToggle("recordTweenToggle", {
-    Title = "Record Movement Path",
-    Default = false
-})
-
+-- Movement Recorder
 local recordedPositions = {}
-
 runs.RenderStepped:Connect(function()
     if recordToggle.Value and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
         local pos = plr.Character.HumanoidRootPart.Position
@@ -350,6 +314,7 @@ runs.RenderStepped:Connect(function()
     end
 end)
 
+-- Replay Path
 Tabs.Tweens:CreateButton({
     Title = "Replay Tween Path",
     Description = "Moves player through recorded positions",
@@ -365,12 +330,15 @@ Tabs.Tweens:CreateButton({
     end
 })
 
+-- Clear Path
 Tabs.Tweens:CreateButton({
     Title = "Clear Recorded Path",
+    Description = "Wipes saved movement positions",
     Callback = function()
         recordedPositions = {}
     end
 })
+
 
 
 -- Basic walk/jump/hip behaviour using the UI elements created above (safe pcall)
