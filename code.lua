@@ -659,7 +659,7 @@ task.spawn(function()
                 local hp = hum.Health
                 local maxhp = hum.MaxHealth
                 local threshold = autohealthslider.Value
-                local healitem = healitemdropdown.Value
+                local itemname = fooddropdown.Value
 
                 if (hp / maxhp * 100) <= threshold then
                     local inv = LocalPlayer:FindFirstChild("PlayerGui")
@@ -670,7 +670,7 @@ task.spawn(function()
 
                     if inv then
                         for _, child in ipairs(inv:GetChildren()) do
-                            if child:IsA("ImageLabel") and child.Name == healitem then
+                            if child:IsA("ImageLabel") and child.Name == itemname then
                                 if packets and packets.UseBagItem and type(packets.UseBagItem.send) == "function" then
                                     packets.UseBagItem.send(child.LayoutOrder)
                                 end
