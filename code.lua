@@ -446,6 +446,22 @@ Tabs.Tweens:CreateButton({
     end
 })
 
+Tabs.Survival = Window:AddTab({ Title = "Survival", Icon = "heart" })
+
+-- Auto Heal
+local autohealtoggle = Tabs.Survival:CreateToggle("autohealtoggle", { Title = "Auto Heal", Default = false })
+local autohealthslider = Tabs.Survival:CreateSlider("autohealthslider", { Title = "Heal Below (%)", Min = 1, Max = 100, Rounding = 0, Default = 50 })
+
+-- Auto Eat
+local autoeattoggle = Tabs.Survival:CreateToggle("autoeattoggle", { Title = "Auto Eat Periodically", Default = false })
+local autoeatdelay = Tabs.Survival:CreateSlider("autoeatdelay", { Title = "Eat Every (s)", Min = 1, Max = 60, Rounding = 0, Default = 10 })
+
+-- Fruit Selector
+local fruitdropdown = Tabs.Survival:CreateDropdown("fruitdropdown", {
+    Title = "Select Fruit",
+    Values = { "Bloodfruit", "Berry", "Bluefruit", "Jelly", "Lemon", "Strawberry", "Coconut", "Banana", "Orange" },
+    Default = "Bloodfruit"
+})
 
 
 -- Basic walk/jump/hip behaviour using the UI elements created above (safe pcall)
@@ -575,6 +591,40 @@ task.spawn(function()
         end
     end
 end)
+
+task.spawn(function()
+    local lastEat = 0
+    while true do
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            local currentHealth = hum.Health
+            local maxHealth = hum.MaxHealth
+            local fruit = fruitdropdown.Value
+
+            -- Auto Heal
+            if autohealtoggle.Value and currentHealth / maxHealth * 100 <= autohealthslider.Value then
+                if packets and packets.UseBagItem and type(packets.UseBagItem.send) == "function" then
+                    pcall(function()
+                        packets.UseBagItem.send(fruit)
+                    end)
+                end
+            end
+
+            -- Auto Eat Periodically
+            if autoeattoggle.Value and tick() - lastEat >= autoeatdelay.Value then
+                if packets and packets.UseBagItem and type(packets.UseBagItem.send) == "function" then
+                    pcall(function()
+                        packets.UseBagItem.send(fruit)
+                    end)
+                    lastEat = tick()
+                end
+            end
+        end
+        task.wait(0.5)
+    end
+end)
+
 
 -- Resource aura
 task.spawn(function()
