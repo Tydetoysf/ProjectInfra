@@ -1,3 +1,5 @@
+local success, err = pcall(function()
+
 -- Project Intra Hub -- Booga Booga Reborn (defensive version: avoids nil-call crashes)
 print("Loading Project Intra Hub -- Booga Booga Reborn")
 print("-----------------------------------------")
@@ -1176,6 +1178,13 @@ end)
 
 print("Luxt:", Luxt)
 print("mainTab:", mainTab)
-
+end)
 
 print("Done! Defensive Project Intra Hub loaded.")
+local success, err = pcall(function()
+    -- your full script here
+end)
+
+if not success then
+    warn("Script error:", err)
+end
