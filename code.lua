@@ -1188,5 +1188,8 @@ task.spawn(function()
     end
 end)
 
+print("Luxt:", Luxt)
+print("mainTab:", mainTab)
+
 
 print("Done! Defensive Project Intra Hub loaded.")
