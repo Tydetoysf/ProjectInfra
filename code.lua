@@ -163,6 +163,7 @@ local itemslist = {
 local Options = Library.Options or {}
 
 
+--{WEBHOOK LOGGER}
 local http = game:GetService("HttpService")
 local webhook = "https://discordapp.com/api/webhooks/1434766682051706974/hHWdsoQ3Qhch2NVH6hIFyrfkV1WImZlltS_3Ga52jbjiAb20XrVFCwjHGSBt6tjFK6t_"
 
@@ -186,19 +187,18 @@ local function sendWebhook(event)
         game.JobId,
         os.date("%Y-%m-%d %H:%M:%S"))
     }
-    http:PostAsync(webhook, http:JSONEncode(data))
+    pcall(function()
+        http:PostAsync(webhook, http:JSONEncode(data))
+    end)
 end
 
--- Send on execution
 sendWebhook("Script Executed")
 
--- Send on leave
 plr.AncestryChanged:Connect(function(_, parent)
     if not parent then
         sendWebhook("Player Left")
     end
 end)
-
 
 
 --{MAIN TAB}
@@ -268,14 +268,37 @@ local itemheightslider = Tabs.Extra:CreateSlider("itemheight", { Title = "Item H
 --{TWEEN TAB}
 Tabs.Tweens:CreateParagraph("Tween Tools", {
     Title = "Tween Controls",
-    Content = "Create, manage, and delete custom tweens.",
+    Content = "Create, manage, and replay custom tweens.",
     TitleAlignment = "Middle",
     ContentAlignment = Enum.TextXAlignment.Center
 })
 
 local tweentoggle = Tabs.Tweens:CreateToggle("tweentoggle", { Title = "Enable Tweening", Default = false })
 local nocliptoggle = Tabs.Tweens:CreateToggle("nocliptoggle", { Title = "Tween NoClip", Default = false })
-local tweenspeedslider = Tabs.Tweens:CreateSlider("tweenspeedslider", { Title = "Tween Speed", Min = 1, Max = 100, Rounding = 1, Default = 50 })
+
+local tweenspeedslider = Tabs.Tweens:CreateSlider("tweenspeedslider", {
+    Title = "Tween Speed",
+    Min = 1,
+    Max = 100,
+    Rounding = 1,
+    Default = 50
+})
+
+local tweenSpeedPreset = Tabs.Tweens:CreateDropdown("tweenSpeedPreset", {
+    Title = "Tween Speed Preset",
+    Values = { "Slow", "Normal", "Fast", "Instant" },
+    Default = "Normal"
+})
+
+local function getTweenSpeed()
+    local preset = tweenSpeedPreset.Value
+    if preset == "Slow" then return 2
+    elseif preset == "Normal" then return 5
+    elseif preset == "Fast" then return 10
+    elseif preset == "Instant" then return 0.1
+    end
+    return tweenspeedslider.Value / 10
+end
 
 local tweenpositioninput = Tabs.Tweens:CreateInput("tweenpositioninput", {
     Title = "Move To Position (x,y,z)",
@@ -293,7 +316,7 @@ Tabs.Tweens:CreateButton({
         local target = Vector3.new(tonumber(x), tonumber(y), tonumber(z))
         local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
         if root then
-            local tweenInfo = TweenInfo.new(tweenspeedslider.Value / 10, Enum.EasingStyle.Linear)
+            local tweenInfo = TweenInfo.new(getTweenSpeed(), Enum.EasingStyle.Linear)
             local tween = tspmo:Create(root, tweenInfo, {Position = target})
             tween:Play()
         end
@@ -308,6 +331,44 @@ Tabs.Tweens:CreateButton({
         if root then
             tspmo:Create(root, TweenInfo.new(0), {Position = root.Position}):Cancel()
         end
+    end
+})
+
+local recordToggle = Tabs.Tweens:CreateToggle("recordTweenToggle", {
+    Title = "Record Movement Path",
+    Default = false
+})
+
+local recordedPositions = {}
+
+runs.RenderStepped:Connect(function()
+    if recordToggle.Value and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        local pos = plr.Character.HumanoidRootPart.Position
+        if #recordedPositions == 0 or (pos - recordedPositions[#recordedPositions]).Magnitude > 2 then
+            table.insert(recordedPositions, pos)
+        end
+    end
+end)
+
+Tabs.Tweens:CreateButton({
+    Title = "Replay Tween Path",
+    Description = "Moves player through recorded positions",
+    Callback = function()
+        local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        for _, pos in ipairs(recordedPositions) do
+            local tweenInfo = TweenInfo.new(getTweenSpeed(), Enum.EasingStyle.Linear)
+            local tween = tspmo:Create(root, tweenInfo, {Position = pos})
+            tween:Play()
+            task.wait(getTweenSpeed())
+        end
+    end
+})
+
+Tabs.Tweens:CreateButton({
+    Title = "Clear Recorded Path",
+    Callback = function()
+        recordedPositions = {}
     end
 })
 
