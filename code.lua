@@ -1,48 +1,33 @@
--- Booga Booga Reborn GUI with Custom Key System + Kavo UI
+-- Booga Booga Reborn GUI with ESP, Fast Kill Aura, Auto-Loot, Teleport, Key System
 
-local expectedKey = "TEST1234" -- 🔑 Set your custom key here
+local expectedKey = "gooning123" -- 🔑 Set your custom key here
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
 
 local function promptKey()
-    local keyGui = Instance.new("ScreenGui", game.CoreGui)
-    keyGui.Name = "KeyPrompt"
-
-    local frame = Instance.new("Frame", keyGui)
+    local gui = Instance.new("ScreenGui", game.CoreGui)
+    local frame = Instance.new("Frame", gui)
     frame.Size = UDim2.new(0, 300, 0, 150)
     frame.Position = UDim2.new(0.5, -150, 0.5, -75)
     frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    frame.BorderSizePixel = 0
-
-    local title = Instance.new("TextLabel", frame)
-    title.Size = UDim2.new(1, 0, 0, 40)
-    title.Text = "Enter Script Key"
-    title.TextColor3 = Color3.new(1, 1, 1)
-    title.BackgroundTransparency = 1
-    title.Font = Enum.Font.SourceSansBold
-    title.TextSize = 24
 
     local input = Instance.new("TextBox", frame)
     input.Size = UDim2.new(0.8, 0, 0, 30)
     input.Position = UDim2.new(0.1, 0, 0.4, 0)
     input.PlaceholderText = "Enter key..."
     input.Text = ""
-    input.TextColor3 = Color3.new(1, 1, 1)
     input.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    input.Font = Enum.Font.SourceSans
-    input.TextSize = 18
+    input.TextColor3 = Color3.new(1, 1, 1)
 
     local submit = Instance.new("TextButton", frame)
     submit.Size = UDim2.new(0.8, 0, 0, 30)
     submit.Position = UDim2.new(0.1, 0, 0.7, 0)
     submit.Text = "Submit"
-    submit.TextColor3 = Color3.new(1, 1, 1)
     submit.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
-    submit.Font = Enum.Font.SourceSansBold
-    submit.TextSize = 18
+    submit.TextColor3 = Color3.new(1, 1, 1)
 
     submit.MouseButton1Click:Connect(function()
         if input.Text == expectedKey then
-            keyGui:Destroy()
+            gui:Destroy()
             loadGUI()
         else
             submit.Text = "Wrong Key!"
@@ -53,14 +38,22 @@ end
 
 function loadGUI()
     local Window = Library.CreateLib("Booga Suite", "Midnight")
-    local combatTab = Window:NewTab("Combat")
-    local combat = combatTab:NewSection("Combat Tools")
+    local combat = Window:NewTab("Combat"):NewSection("Combat Tools")
+    local utility = Window:NewTab("Utility"):NewSection("ESP & Teleport")
 
-    combat:NewToggle("Kill Aura", "Auto-damages nearby players", function(state)
+    getgenv().killAuraEnabled = false
+    getgenv().aimbotEnabled = false
+    getgenv().espEnabled = false
+    getgenv().autoLootEnabled = false
+    getgenv().killAuraRange = 15
+    getgenv().predictionStrength = 1.0
+    getgenv().hitboxSize = 3.0
+
+    combat:NewToggle("Kill Aura", "Fast auto-hit", function(state)
         getgenv().killAuraEnabled = state
     end)
 
-    combat:NewSlider("Kill Aura Range", "Set kill aura distance", 30, 5, function(val)
+    combat:NewSlider("Kill Aura Range", "Distance to hit", 30, 5, function(val)
         getgenv().killAuraRange = val
     end)
 
@@ -76,8 +69,13 @@ function loadGUI()
         getgenv().hitboxSize = val
     end)
 
-    local utilityTab = Window:NewTab("Utility")
-    local utility = utilityTab:NewSection("Teleport & Misc")
+    utility:NewToggle("ESP Boxes", "Draw boxes on players", function(state)
+        getgenv().espEnabled = state
+    end)
+
+    utility:NewToggle("Auto-Loot", "Grab nearby items", function(state)
+        getgenv().autoLootEnabled = state
+    end)
 
     utility:NewButton("Teleport to Random Player", "TP to a random player", function()
         local targets = {}
@@ -90,29 +88,54 @@ function loadGUI()
             game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = targets[math.random(1, #targets)].CFrame + Vector3.new(0, 5, 0)
         end
     end)
-
-    utility:NewToggle("Anti-AFK", "Prevents idle kick", function(state)
-        if state then
-            for _, v in pairs(getconnections(game.Players.LocalPlayer.Idled)) do
-                v:Disable()
-            end
-        end
-    end)
 end
 
--- Start key prompt
 promptKey()
 
 -- Background logic
 local RunService = game:GetService("RunService")
 RunService.RenderStepped:Connect(function()
+    local lp = game.Players.LocalPlayer
+    local char = lp.Character
+    if not char then return end
+
+    -- Kill Aura
     if getgenv().killAuraEnabled then
         for _, player in pairs(game.Players:GetPlayers()) do
-            if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") then
+            if player ~= lp and player.Character and player.Character:FindFirstChild("Humanoid") then
                 local part = player.Character:FindFirstChild("HumanoidRootPart")
-                if part and (part.Position - game.Players.LocalPlayer.Character.HumanoidRootPart.Position).Magnitude < (getgenv().killAuraRange or 15) then
+                if part and (part.Position - char.HumanoidRootPart.Position).Magnitude < getgenv().killAuraRange then
                     player.Character.Humanoid.Health = 0
                 end
+            end
+        end
+    end
+
+    -- ESP
+    if getgenv().espEnabled then
+        for _, player in pairs(game.Players:GetPlayers()) do
+            if player ~= lp and player.Character and player.Character:FindFirstChild("Head") then
+                local head = player.Character.Head
+                if not head:FindFirstChild("ESPBox") then
+                    local box = Instance.new("BoxHandleAdornment", head)
+                    box.Name = "ESPBox"
+                    box.Size = Vector3.new(2, 2, 2)
+                    box.Adornee = head
+                    box.AlwaysOnTop = true
+                    box.ZIndex = 10
+                    box.Color3 = Color3.new(1, 0, 0)
+                    box.Transparency = 0.5
+                end
+            end
+        end
+    end
+
+    -- Auto-Loot
+    if getgenv().autoLootEnabled then
+        for _, item in pairs(workspace:GetDescendants()) do
+            if item:IsA("Tool") and (item.Position - char.HumanoidRootPart.Position).Magnitude < 10 then
+                firetouchinterest(char.HumanoidRootPart, item, 0)
+                firetouchinterest(char.HumanoidRootPart, item, 1)
             end
         end
     end
