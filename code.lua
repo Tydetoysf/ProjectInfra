@@ -29,7 +29,7 @@ local function safe_load_remote(url)
 end
 
 -- Try to load Fluent UI library; if it fails, provide a minimal stub so script doesn't crash.
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/Tydetoysf/InfraUI/main/loader.lua"))()
+local Library, libErr = safe_load_remote("https://github.com/1dontgiveaf/Fluent-Renewed/releases/download/v1.0/Fluent.luau")
 if not Library then
     warn("[IntraHub] Fluent UI failed to load ("..tostring(libErr).."), using minimal UI stub. Some visuals may be missing.")
     -- Minimal UI stub (very small subset used by script)
@@ -75,6 +75,28 @@ if not Library then
     end
     -- Minimal Notify fallback
     function Library:Notify(opts) print("[Notify]", opts.Title, opts.Content) end
+end
+
+-- Attempt to load addons (pcall safe)
+local SaveManager, InterfaceManager
+do
+    local ok1, sm = pcall(function() return safe_load_remote("https://raw.githubusercontent.com/1dontgiveaf/Fluent-Renewed/refs/heads/main/Addons/SaveManager.luau") end)
+    if ok1 and sm then SaveManager = sm else
+        SaveManager = {}
+        function SaveManager:SetLibrary() end
+        function SaveManager:IgnoreThemeSettings() end
+        function SaveManager:SetIgnoreIndexes() end
+        function SaveManager:SetFolder() end
+        function SaveManager:BuildConfigSection() end
+        function SaveManager:LoadAutoloadConfig() end
+    end
+    local ok2, im = pcall(function() return safe_load_remote("https://raw.githubusercontent.com/1dontgiveaf/Fluent-Renewed/refs/heads/main/Addons/InterfaceManager.luau") end)
+    if ok2 and im then InterfaceManager = im else
+        InterfaceManager = {}
+        function InterfaceManager:SetLibrary() end
+        function InterfaceManager:SetFolder() end
+        function InterfaceManager:BuildInterfaceSection() end
+    end
 end
 
 -- Create main GUI window (safe)
@@ -644,8 +666,8 @@ task.spawn(function()
     end
 end)
 
+
 task.spawn(function()
-    local lastHeal = 0
     while true do
         if autohealtoggle.Value then
             local char = LocalPlayer.Character
@@ -655,9 +677,8 @@ task.spawn(function()
                 local maxhp = hum.MaxHealth
                 local threshold = autohealthslider.Value
                 local itemname = fooddropdown.Value
-                local interval = healcpsslider.Value
 
-                if (hp / maxhp * 100) <= threshold and tick() - lastHeal >= interval then
+                if (hp / maxhp * 100) <= threshold then
                     local inv = LocalPlayer:FindFirstChild("PlayerGui")
                         and LocalPlayer.PlayerGui:FindFirstChild("MainGui")
                         and LocalPlayer.PlayerGui.MainGui:FindFirstChild("RightPanel")
@@ -669,7 +690,6 @@ task.spawn(function()
                             if child:IsA("ImageLabel") and child.Name == itemname then
                                 if packets and packets.UseBagItem and type(packets.UseBagItem.send) == "function" then
                                     packets.UseBagItem.send(child.LayoutOrder)
-                                    lastHeal = tick()
                                 end
                                 break
                             end
@@ -678,7 +698,7 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.05) -- tight loop for responsiveness
+        task.wait(0.01) -- 100 CPS
     end
 end)
 
@@ -1046,5 +1066,17 @@ task.spawn(function()
     end
 end)
 
+-- Setup SaveManager / InterfaceManager gracefully (pcall)
+pcall(function() SaveManager:SetLibrary(Library) end)
+pcall(function() InterfaceManager:SetLibrary(Library) end)
+pcall(function() SaveManager:IgnoreThemeSettings() end)
+pcall(function() SaveManager:SetIgnoreIndexes{} end)
+pcall(function() InterfaceManager:SetFolder("FluentScriptHub") end)
+pcall(function() SaveManager:SetFolder("FluentScriptHub/specific-game") end)
+pcall(function() InterfaceManager:BuildInterfaceSection(Tabs.Settings) end)
+pcall(function() SaveManager:BuildConfigSection(Tabs.Settings) end)
+pcall(function() Window:SelectTab(1) end)
+pcall(function() Library:Notify{ Title = "Project Instra Hub", Content = "Loaded (defensive mode).", Duration = 6 } end)
+pcall(function() SaveManager:LoadAutoloadConfig() end)
 
-print("Done! Defensive Project Intra Hub loaded.")
+print("Done! Project Intra Hub loaded.")
