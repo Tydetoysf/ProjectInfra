@@ -492,7 +492,8 @@ task.spawn(function()
 end)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UseItem = ReplicatedStorage:WaitForChild("UseBagItem")
+local UseItem = ReplicatedStorage:WaitForChild("UseBagItem") -- adjust name after you confirm
+
 task.spawn(function()
     local lastEat = 0
     while true do
