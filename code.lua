@@ -813,6 +813,9 @@ task.spawn(function()
     end
 end)
 
+---------------------------------------------------------------------
+-- ESP Logic Handler
+---------------------------------------------------------------------
 local settings = {
     box = false,
     name = false,
@@ -825,9 +828,7 @@ local settings = {
 
 local espStore = {}
 
----------------------------------------------------------------------
 -- Box + Name + Health ESP
----------------------------------------------------------------------
 local function createBoxNameHealth(character, player)
     local box = Drawing.new("Square")
     box.Color = Color3.fromRGB(255,255,255)
@@ -890,9 +891,7 @@ local function createBoxNameHealth(character, player)
     return {box=box,name=nameText,health=healthBar}
 end
 
----------------------------------------------------------------------
--- Skeleton ESP (minimal vs full)
----------------------------------------------------------------------
+-- Skeleton ESP
 local minimalPairs = {
     {"Head","UpperTorso"},
     {"UpperTorso","LowerTorso"},
@@ -901,7 +900,6 @@ local minimalPairs = {
     {"LowerTorso","LeftUpperLeg"},
     {"LowerTorso","RightUpperLeg"},
 }
-
 local fullPairs = {
     {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
     {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
@@ -909,7 +907,6 @@ local fullPairs = {
     {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
     {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
 }
-
 local function createSkeleton(character)
     local pairs = settings.skeletonMode=="full" and fullPairs or minimalPairs
     local lines={}
@@ -939,9 +936,7 @@ local function createSkeleton(character)
     return lines
 end
 
----------------------------------------------------------------------
 -- Tracer ESP
----------------------------------------------------------------------
 local function createTracer(character)
     local tracer=Drawing.new("Line")
     tracer.Color=Color3.fromRGB(255,0,0)
@@ -969,13 +964,13 @@ local function createTracer(character)
     return tracer
 end
 
+-- Player Lifecycle
 local function setupESP(player,character)
     espStore[player]={}
     espStore[player].boxNameHealth=createBoxNameHealth(character,player)
     espStore[player].skeleton=createSkeleton(character)
     espStore[player].tracer=createTracer(character)
 end
-
 local function cleanupESP(player)
     espStore[player]=nil
 end
@@ -984,64 +979,12 @@ Players.PlayerAdded:Connect(function(p)
     p.CharacterAdded:Connect(function(char) setupESP(p,char) end)
     p.CharacterRemoving:Connect(function() cleanupESP(p) end)
 end)
-
 for _,p in ipairs(Players:GetPlayers()) do
     if p~=LocalPlayer and p.Character then setupESP(p,p.Character) end
 end
-
 Players.PlayerRemoving:Connect(function(p) cleanupESP(p) end)
 
----------------------------------------------------------------------
--- Hook ESP into your Combat tab UI
----------------------------------------------------------------------
 
--- Example: ESP section already created in your Combat tab
--- local ESPSection = Tabs.Combat:CreateSection("ESP")
-
-local espbox = ESPSection:CreateToggle("espbox", { Title = "Box ESP", Default = false }, function(val)
-    settings.box = val
-end)
-
-local espname = ESPSection:CreateToggle("espname", { Title = "Name ESP", Default = false }, function(val)
-    settings.name = val
-end)
-
-local esphealth = ESPSection:CreateToggle("esphealth", { Title = "Health ESP", Default = false }, function(val)
-    settings.health = val
-end)
-
-local esptracer = ESPSection:CreateToggle("esptracer", { Title = "Tracer ESP", Default = false }, function(val)
-    settings.tracer = val
-end)
-
-local esptracermode = ESPSection:CreateDropdown("esptracermode", { 
-    Title = "Tracer Mode", 
-    Values = { "bottom", "center", "side" }, 
-    Default = "bottom" 
-}, function(val)
-    settings.tracerMode = val
-end)
-
-local espskeleton = ESPSection:CreateToggle("espskeleton", { Title = "Skeleton ESP", Default = false }, function(val)
-    settings.skeleton = val
-end)
-
-local espskeletonmode = ESPSection:CreateDropdown("espskeletonmode", { 
-    Title = "Skeleton Mode", 
-    Values = { "minimal", "full" }, 
-    Default = "minimal" 
-}, function(val)
-    settings.skeletonMode = val
-end)
-
-local espmaster = ESPSection:CreateToggle("espmaster", { Title = "ESP Master", Default = false }, function(val)
-    -- Flip all boolean settings at once
-    for k,v in pairs(settings) do
-        if type(v) == "boolean" then
-            settings[k] = val
-        end
-    end
-end)
 
 -- Plant placement helper
 placestructure = function(gridsize)
