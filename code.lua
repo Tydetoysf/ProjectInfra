@@ -813,177 +813,57 @@ task.spawn(function()
     end
 end)
 
----------------------------------------------------------------------
--- ESP Logic Handler
----------------------------------------------------------------------
-local settings = {
-    box = false,
-    name = false,
-    health = false,
-    tracer = false,
-    tracerMode = "bottom", -- bottom, center, side
-    skeleton = false,
-    skeletonMode = "minimal" -- minimal or full
-}
-
-local espStore = {}
-
--- Box + Name + Health ESP
-local function createBoxNameHealth(character, player)
-    local box = Drawing.new("Square")
-    box.Color = Color3.fromRGB(255,255,255)
-    box.Thickness = 2
-    box.Filled = false
-    box.Visible = false
-
-    local nameText = Drawing.new("Text")
-    nameText.Text = player.Name
-    nameText.Size = 12
-    nameText.Color = Color3.fromRGB(255,255,255)
-    nameText.Center = true
-    nameText.Visible = false
-
-    local healthBar = Drawing.new("Line")
-    healthBar.Thickness = 3
-    healthBar.Visible = false
-
-    RunService.RenderStepped:Connect(function()
-        if not (settings.box or settings.name or settings.health) then
-            box.Visible=false; nameText.Visible=false; healthBar.Visible=false
-            return
+local function refreshESP()
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            setupESP(p, p.Character)
         end
-        local root = character:FindFirstChild("HumanoidRootPart")
-        local humanoid = character:FindFirstChildOfClass("Humanoid")
-        if not root or not humanoid then return end
-
-        local pos,onScreen = Camera:WorldToViewportPoint(root.Position)
-        if onScreen then
-            local scale = math.clamp(800/pos.Z, 40, 120) -- capped scale
-            if settings.box then
-                box.Size = Vector2.new(scale, scale*2)
-                box.Position = Vector2.new(pos.X - box.Size.X/2, pos.Y - box.Size.Y/2)
-                box.Visible = true
-            else box.Visible=false end
-
-            if settings.name then
-                nameText.Position = Vector2.new(pos.X, pos.Y - box.Size.Y/2 - 12)
-                nameText.Visible = true
-            else nameText.Visible=false end
-
-            if settings.health then
-                local ratio = humanoid.Health/humanoid.MaxHealth
-                local height = box.Size.Y * ratio
-                healthBar.From = Vector2.new(box.Position.X-6, box.Position.Y+box.Size.Y)
-                healthBar.To   = Vector2.new(box.Position.X-6, box.Position.Y+box.Size.Y-height)
-                if humanoid.Health<=40 then
-                    healthBar.Color=Color3.fromRGB(220,60,60)
-                elseif humanoid.Health<=75 then
-                    healthBar.Color=Color3.fromRGB(230,200,40)
-                else
-                    healthBar.Color=Color3.fromRGB(40,210,110)
-                end
-                healthBar.Visible=true
-            else healthBar.Visible=false end
-        else
-            box.Visible=false; nameText.Visible=false; healthBar.Visible=false
-        end
-    end)
-    return {box=box,name=nameText,health=healthBar}
-end
-
--- Skeleton ESP
-local minimalPairs = {
-    {"Head","UpperTorso"},
-    {"UpperTorso","LowerTorso"},
-    {"UpperTorso","LeftUpperArm"},
-    {"UpperTorso","RightUpperArm"},
-    {"LowerTorso","LeftUpperLeg"},
-    {"LowerTorso","RightUpperLeg"},
-}
-local fullPairs = {
-    {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-    {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-    {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-    {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-    {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
-}
-local function createSkeleton(character)
-    local pairs = settings.skeletonMode=="full" and fullPairs or minimalPairs
-    local lines={}
-    for _,pair in ipairs(pairs) do
-        local line=Drawing.new("Line")
-        line.Color=Color3.fromRGB(0,255,0)
-        line.Thickness=1
-        line.Visible=false
-        table.insert(lines,{line=line,a=pair[1],b=pair[2]})
     end
-    RunService.RenderStepped:Connect(function()
-        if not settings.skeleton then for _,seg in ipairs(lines) do seg.line.Visible=false end return end
-        for _,seg in ipairs(lines) do
-            local a=character:FindFirstChild(seg.a)
-            local b=character:FindFirstChild(seg.b)
-            if a and b then
-                local pa,onA=Camera:WorldToViewportPoint(a.Position)
-                local pb,onB=Camera:WorldToViewportPoint(b.Position)
-                if onA and onB then
-                    seg.line.From=Vector2.new(pa.X,pa.Y)
-                    seg.line.To=Vector2.new(pb.X,pb.Y)
-                    seg.line.Visible=true
-                else seg.line.Visible=false end
-            else seg.line.Visible=false end
-        end
-    end)
-    return lines
 end
 
--- Tracer ESP
-local function createTracer(character)
-    local tracer=Drawing.new("Line")
-    tracer.Color=Color3.fromRGB(255,0,0)
-    tracer.Thickness=2
-    tracer.Visible=false
-
-    RunService.RenderStepped:Connect(function()
-        if not settings.tracer then tracer.Visible=false return end
-        local root=character:FindFirstChild("HumanoidRootPart")
-        if root then
-            local pos,onScreen=Camera:WorldToViewportPoint(root.Position)
-            if onScreen then
-                if settings.tracerMode=="bottom" then
-                    tracer.From=Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y)
-                elseif settings.tracerMode=="center" then
-                    tracer.From=Vector2.new(Camera.ViewportSize.X/2,Camera.ViewportSize.Y/2)
-                elseif settings.tracerMode=="side" then
-                    tracer.From=Vector2.new(0,Camera.ViewportSize.Y/2)
-                end
-                tracer.To=Vector2.new(pos.X,pos.Y)
-                tracer.Visible=true
-            else tracer.Visible=false end
-        else tracer.Visible=false end
-    end)
-    return tracer
-end
-
--- Player Lifecycle
-local function setupESP(player,character)
-    espStore[player]={}
-    espStore[player].boxNameHealth=createBoxNameHealth(character,player)
-    espStore[player].skeleton=createSkeleton(character)
-    espStore[player].tracer=createTracer(character)
-end
-local function cleanupESP(player)
-    espStore[player]=nil
-end
-
-Players.PlayerAdded:Connect(function(p)
-    p.CharacterAdded:Connect(function(char) setupESP(p,char) end)
-    p.CharacterRemoving:Connect(function() cleanupESP(p) end)
+local espbox = ESPSection:CreateToggle("espbox", { Title = "Box ESP", Default = false }, function(val)
+    settings.box = val
+    refreshESP()
 end)
-for _,p in ipairs(Players:GetPlayers()) do
-    if p~=LocalPlayer and p.Character then setupESP(p,p.Character) end
-end
-Players.PlayerRemoving:Connect(function(p) cleanupESP(p) end)
 
+local espname = ESPSection:CreateToggle("espname", { Title = "Name ESP", Default = false }, function(val)
+    settings.name = val
+    refreshESP()
+end)
+
+local esphealth = ESPSection:CreateToggle("esphealth", { Title = "Health ESP", Default = false }, function(val)
+    settings.health = val
+    refreshESP()
+end)
+
+local esptracer = ESPSection:CreateToggle("esptracer", { Title = "Tracer ESP", Default = false }, function(val)
+    settings.tracer = val
+    refreshESP()
+end)
+
+local esptracermode = ESPSection:CreateDropdown("esptracermode", { Title = "Tracer Mode", Values = { "bottom", "center", "side" }, Default = "bottom" }, function(val)
+    settings.tracerMode = val
+    refreshESP()
+end)
+
+local espskeleton = ESPSection:CreateToggle("espskeleton", { Title = "Skeleton ESP", Default = false }, function(val)
+    settings.skeleton = val
+    refreshESP()
+end)
+
+local espskeletonmode = ESPSection:CreateDropdown("espskeletonmode", { Title = "Skeleton Mode", Values = { "minimal", "full" }, Default = "minimal" }, function(val)
+    settings.skeletonMode = val
+    refreshESP()
+end)
+
+local espmaster = ESPSection:CreateToggle("espmaster", { Title = "ESP Master", Default = false }, function(val)
+    for k,v in pairs(settings) do
+        if type(v) == "boolean" then
+            settings[k] = val
+        end
+    end
+    refreshESP()
+end)
 
 
 -- Plant placement helper
