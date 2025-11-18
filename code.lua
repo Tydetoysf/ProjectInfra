@@ -491,6 +491,7 @@ task.spawn(function()
     end
 end)
 
+-- Project Infra: Ultra Fast Auto Heal + Auto Eat
 task.spawn(function()
     local lastEat = 0
     while true do
@@ -520,7 +521,7 @@ task.spawn(function()
                 end
             end
         end
-        task.wait(0.25)
+        task.wait(0.025) -- ~40 checks per second
     end
 end)
 
